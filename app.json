@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "WalkPets",
+    "slug": "walkpets-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "walkpets",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#3D5A1E"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.walkpets.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#3D5A1E"
+      },
+      "package": "com.walkpets.app"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
