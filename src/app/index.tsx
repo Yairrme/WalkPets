@@ -66,27 +66,13 @@ export default function Inicio() {
         </TouchableOpacity>
       </View>
 
-      {/* =========================================================================
-          SECCIÓN DE ESTADÍSTICAS RÁPIDAS
-          ========================================================================= */}
-      <View style={styles.statsRow}>
-        {[
-          ["4", "Paseadores"],
-          ["4.9★", "Calificación"],
-          ["120+", "Reseñas"],
-        ].map(([n, l], i) => (
-          <View key={i} style={styles.statCard}>
-            <Text style={styles.statNumero}>{n}</Text>
-            <Text style={styles.statLabel}>{l}</Text>
-          </View>
-        ))}
-      </View>
+
 
       {/* =========================================================================
           GUÍA SIMPLIFICADA DE USO
           ========================================================================= */}
       <Text style={styles.seccionTitulo}>¿Cómo funciona WalkPets?</Text>
-      
+
       {[
         {
           icono: "🔍",
@@ -122,15 +108,15 @@ export default function Inicio() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { 
-    flex: 1, 
-    backgroundColor: colors.crema 
+  scroll: {
+    flex: 1,
+    backgroundColor: colors.crema
   },
-  contenedor: { 
-    padding: spacing.lg, 
-    paddingBottom: spacing.xxl 
+  contenedor: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl
   },
-  
+
   // Hero: Banner superior simplificado y estético
   hero: {
     alignItems: "center",
@@ -186,7 +172,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 2,
     marginBottom: spacing.lg,
   },
-  
+
   // Botón Buscar Paseador (Verde Sólido Premium)
   btnBuscar: {
     backgroundColor: colors.verde,
@@ -256,12 +242,12 @@ const styles = StyleSheet.create({
     color: colors.verde,
     marginLeft: spacing.sm,
   },
-  
+
   // Estadísticas
-  statsRow: { 
-    flexDirection: "row", 
-    gap: spacing.sm, 
-    marginBottom: spacing.lg 
+  statsRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.lg
   },
   statCard: {
     flex: 1,
@@ -284,7 +270,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 2,
   },
-  
+
   // Título de secciones secundarias
   seccionTitulo: {
     fontSize: fonts.sizes.md + 1,
@@ -293,7 +279,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginTop: spacing.xs,
   },
-  
+
   // Tarjetas informativas
   pasoCard: {
     backgroundColor: colors.blanco,
@@ -315,11 +301,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  pasoIcono: { 
-    fontSize: 20 
+  pasoIcono: {
+    fontSize: 20
   },
-  pasoTexto: { 
-    flex: 1 
+  pasoTexto: {
+    flex: 1
   },
   pasoTitulo: {
     fontSize: fonts.sizes.sm + 1,
@@ -332,7 +318,7 @@ const styles = StyleSheet.create({
     color: colors.grisOscuro,
     lineHeight: 16,
   },
-  
+
   // Pie de página
   footer: {
     textAlign: "center",
