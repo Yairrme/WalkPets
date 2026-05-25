@@ -28,6 +28,10 @@ export default function RootLayout() {
           name="paseadores/reserva"
           options={{ title: "Reservar turno" }}
         />
+        <Stack.Screen
+          name="paseadores/registro"
+          options={{ title: "Registrarse como Paseador" }}
+        />
       </Stack>
     </>
   );

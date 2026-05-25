@@ -1,10 +1,9 @@
-import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { colors, fonts, radius, shadows, spacing } from '../constants/theme';
 import { Paseador } from '../types/paseador';

@@ -190,3 +190,23 @@ export async function getPaseadorById(id: string): Promise<Paseador | null> {
   await new Promise((resolve) => setTimeout(resolve, 500));
   return PASEADORES_MOCK.find((p) => p.id === id) ?? null;
 }
+
+export async function registrarPaseador(
+  datos: Omit<Paseador, 'id' | 'calificacion' | 'cantidadResenas' | 'resenas' | 'turnosDisponibles'>
+): Promise<Paseador> {
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  const nuevoPaseador: Paseador = {
+    ...datos,
+    id: String(PASEADORES_MOCK.length + 1),
+    calificacion: 5.0,
+    cantidadResenas: 0,
+    resenas: [],
+    turnosDisponibles: [
+      { id: `t1_${PASEADORES_MOCK.length + 1}`, dia: 'Lunes', horario: '09:00 - 11:00', disponible: true },
+      { id: `t2_${PASEADORES_MOCK.length + 1}`, dia: 'Miércoles', horario: '15:00 - 17:00', disponible: true },
+      { id: `t3_${PASEADORES_MOCK.length + 1}`, dia: 'Viernes', horario: '10:00 - 12:00', disponible: true },
+    ],
+  };
+  PASEADORES_MOCK.push(nuevoPaseador);
+  return nuevoPaseador;
+}

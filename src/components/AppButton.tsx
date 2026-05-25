@@ -1,17 +1,16 @@
-import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   ViewStyle,
-} from 'react-native';
-import { colors, radius, spacing, fonts } from '../constants/theme';
+} from "react-native";
+import { colors, fonts, radius, spacing } from "../constants/theme";
 
 type Props = {
   label: string;
   onPress: () => void;
-  variante?: 'primario' | 'secundario' | 'outline';
+  variante?: "primario" | "secundario" | "outline";
   cargando?: boolean;
   deshabilitado?: boolean;
   style?: ViewStyle;
@@ -20,24 +19,24 @@ type Props = {
 export function AppButton({
   label,
   onPress,
-  variante = 'primario',
+  variante = "primario",
   cargando = false,
   deshabilitado = false,
   style,
 }: Props) {
   const estiloBoton = [
     styles.base,
-    variante === 'primario' && styles.primario,
-    variante === 'secundario' && styles.secundario,
-    variante === 'outline' && styles.outline,
+    variante === "primario" && styles.primario,
+    variante === "secundario" && styles.secundario,
+    variante === "outline" && styles.outline,
     (deshabilitado || cargando) && styles.deshabilitado,
     style,
   ];
 
   const estiloTexto = [
     styles.texto,
-    variante === 'outline' && styles.textoOutline,
-    variante === 'secundario' && styles.textoSecundario,
+    variante === "outline" && styles.textoOutline,
+    variante === "secundario" && styles.textoSecundario,
   ];
 
   return (
@@ -49,7 +48,7 @@ export function AppButton({
     >
       {cargando ? (
         <ActivityIndicator
-          color={variante === 'outline' ? colors.verde : colors.blanco}
+          color={variante === "outline" ? colors.verde : colors.blanco}
           size="small"
         />
       ) : (
@@ -64,14 +63,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 52,
   },
   primario: { backgroundColor: colors.verde },
   secundario: { backgroundColor: colors.verdeClaro },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: colors.verde,
   },
@@ -79,7 +78,7 @@ const styles = StyleSheet.create({
   texto: {
     color: colors.blanco,
     fontSize: fonts.sizes.md,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.3,
   },
   textoOutline: { color: colors.verde },
