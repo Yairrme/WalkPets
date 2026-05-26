@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Image,
   StyleSheet,
@@ -5,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, fonts, radius, shadows, spacing } from '../constants/theme';
+import { colors, fonts, radius, spacing } from '../constants/theme';
 import { Paseador } from '../types/paseador';
 
 type Props = {
@@ -14,41 +15,49 @@ type Props = {
 };
 
 export function PaseadorCard({ paseador, onPress }: Props) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
-      <Image source={{ uri: paseador.foto }} style={styles.foto} />
+    <TouchableOpacity
+      style={[styles.card, isHovered && styles.cardHovered]}
+      onPress={onPress}
+      activeOpacity={0.95}
+      {...({
+        onMouseEnter: () => setIsHovered(true),
+        onMouseLeave: () => setIsHovered(false),
+      } as any)}
+    >
+      {/* 1. FOTO ARRIBA (Ancho completo) */}
+      <Image
+        source={{ uri: paseador.foto || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png' }}
+        style={styles.foto}
+      />
 
+      {/* 2. INFORMACIÓN DEBAJO */}
       <View style={styles.info}>
-        <View style={styles.encabezado}>
-          <Text style={styles.nombre}>
-            {paseador.nombre} {paseador.apellido}
-          </Text>
-          <View style={[styles.badge, paseador.disponible ? styles.badgeDisp : styles.badgeNoDis]}>
-            <Text style={[styles.badgeTexto, paseador.disponible ? styles.badgeTextoDisp : styles.badgeTextoNoDis]}>
-              {paseador.disponible ? 'Disponible' : 'No disponible'}
-            </Text>
-          </View>
-        </View>
+        {/* Precio grande como en ML */}
+        <Text style={styles.precio}>
+          $ {paseador.precioHora.toLocaleString('es-AR')}
+        </Text>
 
-        <Text style={styles.barrio}>📍 {paseador.barrio}</Text>
+        {/* Texto destacado verde estilo "Llega gratis" de ML */}
+        <Text style={[styles.estadoTexto, paseador.disponible ? styles.estadoDisp : styles.estadoNoDis]}>
+          {paseador.disponible ? 'Disponible hoy' : 'No disponible'}
+        </Text>
 
+        {/* Nombre del paseador como título del producto */}
+        <Text style={styles.nombre} numberOfLines={2}>
+          Paseador {paseador.nombre} {paseador.apellido}
+        </Text>
+
+        {/* Estrellas y reseñas */}
         <View style={styles.calificacionFila}>
-          <Text style={styles.estrellas}>
-            {'★'.repeat(Math.round(paseador.calificacion))}
-            {'☆'.repeat(5 - Math.round(paseador.calificacion))}
-          </Text>
-          <Text style={styles.calificacionTexto}>
-            {paseador.calificacion.toFixed(1)} · {paseador.cantidadResenas} reseñas
-          </Text>
+          <Text style={styles.estrellas}>★ {paseador.calificacion.toFixed(1)}</Text>
+          <Text style={styles.calificacionTexto}>({paseador.cantidadResenas})</Text>
         </View>
 
-        <View style={styles.pie}>
-          <Text style={styles.precio}>
-            ${paseador.precioHora.toLocaleString('es-AR')}
-            <Text style={styles.precioSufijo}>/hora</Text>
-          </Text>
-          <Text style={styles.verMas}>Ver perfil →</Text>
-        </View>
+        {/* Ubicación chiquita */}
+        <Text style={styles.barrio}>📍 {paseador.barrio}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -57,28 +66,74 @@ export function PaseadorCard({ paseador, onPress }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.blanco,
-    borderRadius: radius.lg,
-    flexDirection: 'row',
+    borderRadius: radius.md,
+    flexDirection: 'column', // Orientación vertical ML
+    flex: 1, // Para que ocupe la mitad en el grid (numColumns={2})
     overflow: 'hidden',
-    marginBottom: spacing.md,
-    ...shadows.card,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2, // Sombra suave de ML
+    transition: 'all 0.2s ease', // Transición suave en web
+  } as any,
+  cardHovered: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    transform: [{ translateY: -2 }],
   },
-  foto: { width: 100, height: 110, resizeMode: 'cover' },
-  info: { flex: 1, padding: spacing.md, gap: spacing.xs },
-  encabezado: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  nombre: { fontSize: fonts.sizes.md, fontWeight: '700', color: colors.negro, flex: 1, marginRight: spacing.xs },
-  badge: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.full },
-  badgeDisp: { backgroundColor: colors.verdePastel },
-  badgeNoDis: { backgroundColor: colors.grisClaro },
-  badgeTexto: { fontSize: fonts.sizes.xs, fontWeight: '600' },
-  badgeTextoDisp: { color: colors.verde },
-  badgeTextoNoDis: { color: colors.grisOscuro },
-  barrio: { fontSize: fonts.sizes.sm, color: colors.grisOscuro },
-  calificacionFila: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  estrellas: { fontSize: fonts.sizes.sm, color: colors.naranja },
-  calificacionTexto: { fontSize: fonts.sizes.xs, color: colors.grisOscuro },
-  pie: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.xs },
-  precio: { fontSize: fonts.sizes.md, fontWeight: '700', color: colors.verde },
-  precioSufijo: { fontSize: fonts.sizes.xs, fontWeight: '400', color: colors.grisOscuro },
-  verMas: { fontSize: fonts.sizes.sm, color: colors.verdeClaro, fontWeight: '600' },
+  foto: {
+    width: '100%',
+    aspectRatio: 1,
+    resizeMode: 'cover'
+  },
+  info: {
+    padding: spacing.md,
+    gap: 4
+  },
+  precio: {
+    fontSize: fonts.sizes.xl,
+    fontWeight: '400',
+    color: colors.negro
+  },
+  estadoTexto: {
+    fontSize: 12,
+    fontWeight: '600'
+  },
+  estadoDisp: {
+    color: '#00a650' // Verde exacto de MercadoLibre
+  },
+  estadoNoDis: {
+    color: colors.grisOscuro
+  },
+  nombre: {
+    fontSize: 13,
+    color: colors.grisOscuro,
+    fontWeight: '400',
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  calificacionFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  estrellas: {
+    fontSize: 12,
+    color: '#00a650', // A veces ML usa verde para reseñas, o dejamos el color default
+    fontWeight: '600',
+  },
+  calificacionTexto: {
+    fontSize: 11,
+    color: colors.grisMedio
+  },
+  barrio: {
+    fontSize: 11,
+    color: colors.grisMedio,
+    marginTop: 2,
+  },
 });

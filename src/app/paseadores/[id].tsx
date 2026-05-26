@@ -6,7 +6,10 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  TouchableOpacity,
+  Linking,
 } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Paseador } from '../../types/paseador';
 import { getPaseadorById } from '../../services/paseadores.service';
@@ -64,6 +67,15 @@ export default function DetallePaseador() {
           <Text style={styles.resenasCantidad}>
             {paseador.cantidadResenas} reseñas
           </Text>
+          
+          <TouchableOpacity 
+            style={styles.instagramBtn}
+            onPress={() => Linking.openURL('https://instagram.com/')}
+            activeOpacity={0.8}
+          >
+            <FontAwesome name="instagram" size={14} color={colors.blanco} />
+            <Text style={styles.instagramTexto}>@{paseador.nombre.toLowerCase()}_{paseador.apellido.toLowerCase()}</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -200,6 +212,22 @@ const styles = StyleSheet.create({
   nombre: { fontSize: fonts.sizes.lg, fontWeight: '800', color: colors.negro },
   barrio: { fontSize: fonts.sizes.sm, color: colors.grisOscuro },
   resenasCantidad: { fontSize: fonts.sizes.xs, color: colors.grisOscuro },
+  instagramBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E1306C', // Color de Instagram
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    marginTop: spacing.xs,
+    alignSelf: 'flex-start',
+    gap: spacing.xs,
+  },
+  instagramTexto: {
+    color: colors.blanco,
+    fontWeight: '700',
+    fontSize: fonts.sizes.xs,
+  },
   precioRow: {
     flexDirection: 'row',
     alignItems: 'center',

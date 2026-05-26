@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Paseador } from '../../types/paseador';
@@ -18,6 +19,10 @@ import { colors, fonts, radius, spacing } from '../../constants/theme';
 type Estado = 'cargando' | 'exito' | 'error' | 'vacio';
 
 export default function ListaPaseadores() {
+  const { width } = useWindowDimensions();
+  // Diseño responsivo: 4 columnas en PC grandes, 3 en tablets, 2 en móviles
+  const columnas = width >= 1100 ? 4 : width >= 768 ? 3 : 2;
+
   const [paseadores, setPaseadores] = useState<Paseador[]>([]);
   const [estado, setEstado] = useState<Estado>('cargando');
   const [soloDisponibles, setSoloDisponibles] = useState(false);
@@ -74,11 +79,7 @@ export default function ListaPaseadores() {
 
       {/* Barra de filtros */}
       <View style={styles.filtrosWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtrosScroll}
-        >
+        <View style={styles.filtrosScroll}>
           {/* Chip: Solo disponibles */}
           <TouchableOpacity
             style={[styles.chip, soloDisponibles && styles.chipActivo]}
@@ -113,7 +114,7 @@ export default function ListaPaseadores() {
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
 
         {/* Botón limpiar filtros */}
         {hayFiltrosActivos && (
@@ -127,7 +128,10 @@ export default function ListaPaseadores() {
       <FlatList
         data={paseadoresFiltrados}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.lista}
+        numColumns={columnas}
+        key={`grid-${columnas}`} // Requerido por FlatList al cambiar columnas
+        columnWrapperStyle={{ gap: spacing.md }}
+        contentContainerStyle={[styles.lista, { gap: spacing.md }]}
         ListHeaderComponent={
           <Text style={styles.encabezado}>
             {paseadoresFiltrados.length} de {paseadores.length} paseadores
@@ -152,6 +156,11 @@ export default function ListaPaseadores() {
             onPress={() => router.push(`/paseadores/${item.id}`)}
           />
         )}
+        ListFooterComponent={
+          <View style={styles.footerSimple}>
+            <Text style={styles.footerTexto}>WalkPets © 2026 - Todos los derechos reservados</Text>
+          </View>
+        }
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -187,6 +196,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    maxWidth: 1200,
+    alignSelf: 'center',
   },
   chip: {
     paddingHorizontal: spacing.md,
@@ -229,6 +242,9 @@ const styles = StyleSheet.create({
   lista: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
+    maxWidth: 1200, // Aumentado para 4 columnas
+    width: '100%',
+    alignSelf: 'center',
   },
   encabezado: {
     fontSize: fonts.sizes.sm,
@@ -250,21 +266,34 @@ const styles = StyleSheet.create({
     color: colors.negro,
   },
   sinResultadosTexto: {
-    fontSize: fonts.sizes.md,
+    fontSize: fonts.sizes.sm,
     color: colors.grisOscuro,
     textAlign: 'center',
+    marginBottom: spacing.md,
   },
   limpiarBtnInline: {
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.verde,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.naranja,
+    borderRadius: radius.md,
   },
   limpiarBtnInlineTexto: {
-    fontSize: fonts.sizes.sm,
-    color: colors.verde,
+    color: colors.blanco,
     fontWeight: '700',
+    fontSize: fonts.sizes.sm,
+  },
+
+  // Footer Simple
+  footerSimple: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: colors.grisClaro,
+  },
+  footerTexto: {
+    fontSize: fonts.sizes.sm,
+    color: colors.grisOscuro,
   },
 });

@@ -55,7 +55,7 @@ const PASEADORES_MOCK: Paseador[] = [
     id: '2',
     nombre: 'Mateo',
     apellido: 'Torres',
-    foto: 'https://randomuser.me/api/portraits/men/45.jpg',
+    foto: '',
     barrio: 'Villa Alberdi',
     ciudad: 'Cipolletti',
     descripcion:
@@ -146,8 +146,8 @@ const PASEADORES_MOCK: Paseador[] = [
     nombre: 'Santiago',
     apellido: 'Morales',
     foto: 'https://randomuser.me/api/portraits/men/22.jpg',
-    barrio: 'Parque Industrial',
-    ciudad: 'Cipolletti',
+    barrio: 'Centro',
+    ciudad: 'Neuquén',
     descripcion:
       'Me encanta pasar tiempo con perros. Paseos tranquilos por el barrio, ideal para perros mayores o con movilidad reducida.',
     precioHora: 1200,

@@ -1,19 +1,19 @@
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
   ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { AppButton } from '../../components/AppButton';
+import { colors, fonts, radius, shadows, spacing } from '../../constants/theme';
 import { useReservaForm } from '../../hooks/useReservaForm';
 import { getPaseadorById } from '../../services/paseadores.service';
 import { Paseador } from '../../types/paseador';
-import { AppButton } from '../../components/AppButton';
-import { colors, fonts, radius, shadows, spacing } from '../../constants/theme';
 
 export default function ReservaTurno() {
   const { id, nombre } = useLocalSearchParams<{ id: string; nombre: string }>();
