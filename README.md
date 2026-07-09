@@ -1,4 +1,4 @@
-# 🐾 WalkPets — Paseadores
+#WalkPets — Paseadores
 
 Aplicación móvil para encontrar paseadores de perros en Cipolletti, ver sus reseñas y reservar un turno.
 
