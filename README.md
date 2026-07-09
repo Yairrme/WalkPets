@@ -17,6 +17,7 @@ Aplicación móvil para encontrar paseadores de perros en Cipolletti, ver sus re
 ## Funcionalidades
 
 - Pantalla de inicio con marca propia y pasos de uso
+- Autenticación y Registro: Flujo contemplado para separar los roles de usuario (dueños de mascotas que buscan paseadores) y proveedores (personas que se registran para ofrecer sus servicios de paseo).
 - Listado de paseadores con datos del service mock
 - Detalle por paseador con reseñas y turnos disponibles
 - Formulario controlado con validación (nombre, teléfono, mascota, turno)
