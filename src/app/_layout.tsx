@@ -4,7 +4,7 @@ import { Image, View, TouchableOpacity } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { colors } from "../constants/theme";
 
-const logo = require("../../assets/images/branding/logo.png");
+const logo = require("../../assets/Logo Walk Pets.png");
 
 export default function RootLayout() {
   return (

@@ -1,11 +1,22 @@
 import { Entypo, FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import {
+  Image,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { WebView } from "react-native-webview";
 import { colors, fonts, radius, shadows, spacing } from "../constants/theme";
 
 // Logo circular de la marca
-const logo = require("../../assets/images/branding/logo.png");
+const logo = require("../../assets/Logo Walk Pets.png");
 
 export default function Inicio() {
   const [mostrarQuienes, setMostrarQuienes] = useState(false);
@@ -13,18 +24,39 @@ export default function Inicio() {
   const { width } = useWindowDimensions();
   const isWide = width >= 600;
 
+  // ▶ Pegá tu URL de YouTube acá (el ID se extrae automáticamente)
+  const youtubeUrl = "https://www.youtube.com/watch?v=plJUSgZ0guc";
+  const videoId = youtubeUrl.split("v=")[1]?.split("&")[0] ?? "";
+  // HTML inline para controlar el embed al 100% y evitar videos relacionados
+  const htmlVideo = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+        <style>
+          * { margin: 0; padding: 0; background: #000; }
+          body { width: 100%; height: 100%; overflow: hidden; }
+          iframe { width: 100%; height: 100%; border: none; }
+        </style>
+      </head>
+      <body>
+        <iframe
+          src="https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&showinfo=0&disablekb=0"
+          allowfullscreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        ></iframe>
+      </body>
+    </html>
+  `;
+
   return (
     <View style={styles.pantalla}>
       {/* =====================================================================
           BARRA DE NAVEGACIÓN SUPERIOR
           ===================================================================== */}
       <View style={styles.navbar}>
-        {/* Fila principal: Logo + Botones */}
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.navBrandGroup} activeOpacity={0.9}>
-            <View style={styles.navLogoMini}>
-              <Image source={logo} style={styles.navLogoMiniImg} resizeMode="cover" />
-            </View>
             <View>
               <View style={styles.navBrand}>
                 <Text style={styles.navTituloWalk}>Walk</Text>
@@ -67,6 +99,19 @@ export default function Inicio() {
       {/* Menú móvil desplegable */}
       {!isWide && menuAbierto && (
         <View style={styles.mobileMenu}>
+          {/* 1. Quiero ser paseador */}
+          <TouchableOpacity
+            style={styles.mobileMenuBtn}
+            onPress={() => {
+              setMenuAbierto(false);
+              router.push("/paseadores/registro");
+            }}
+          >
+            <FontAwesome name="paw" size={15} color={colors.blanco} style={{ marginRight: 10 }} />
+            <Text style={styles.mobileMenuBtnTxt}>Quiero ser paseador</Text>
+          </TouchableOpacity>
+          <View style={styles.mobileMenuDivider} />
+          {/* 2. Quiénes somos */}
           <TouchableOpacity
             style={styles.mobileMenuBtn}
             onPress={() => {
@@ -74,10 +119,13 @@ export default function Inicio() {
               setMostrarQuienes(!mostrarQuienes);
             }}
           >
+            <Entypo name="info-with-circle" size={15} color={colors.blanco} style={{ marginRight: 10 }} />
             <Text style={styles.mobileMenuBtnTxt}>Quiénes somos</Text>
           </TouchableOpacity>
           <View style={styles.mobileMenuDivider} />
+          {/* 3. Regístrate */}
           <TouchableOpacity style={styles.mobileMenuBtn}>
+            <Entypo name="add-user" size={15} color={colors.blanco} style={{ marginRight: 10 }} />
             <Text style={styles.mobileMenuBtnTxt}>Regístrate</Text>
           </TouchableOpacity>
         </View>
@@ -87,8 +135,8 @@ export default function Inicio() {
       {mostrarQuienes && (
         <View style={styles.quienesPanel}>
           <View style={styles.quienesCard}>
-            <TouchableOpacity 
-              style={{ position: "absolute", top: 8, right: 8, padding: 8, zIndex: 10 }} 
+            <TouchableOpacity
+              style={{ position: "absolute", top: 8, right: 8, padding: 8, zIndex: 10 }}
               onPress={() => setMostrarQuienes(false)}
             >
               <Entypo name="cross" size={24} color="#666" />
@@ -101,125 +149,134 @@ export default function Inicio() {
             <View style={styles.quienesDivider} />
             <Text style={styles.quienesCreador}>Creado por</Text>
             <Text style={styles.quienesNombre}>Yair Melinguer</Text>
-            <Text style={styles.quienesRol}>Fundador & Desarrollador</Text>
+            <View style={styles.quienesDivider} />
+            {/* Redes sociales */}
+            <Text style={styles.quienesSiguenos}>Síguenos en</Text>
+            <View style={styles.quienesRedes}>
+              <TouchableOpacity onPress={() => Linking.openURL("https://instagram.com")} activeOpacity={0.7}>
+                <View style={styles.quienesRedCircle}>
+                  <Entypo name="instagram" size={20} color={colors.verde} />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => Linking.openURL("https://linkedin.com")} activeOpacity={0.7}>
+                <View style={styles.quienesRedCircle}>
+                  <Entypo name="linkedin" size={20} color={colors.verde} />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => Linking.openURL("https://x.com")} activeOpacity={0.7}>
+                <View style={styles.quienesRedCircle}>
+                  <FontAwesome name="twitter" size={20} color={colors.verde} />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => Linking.openURL("https://wa.me/5490000000000")} activeOpacity={0.7}>
+                <View style={styles.quienesRedCircle}>
+                  <FontAwesome name="whatsapp" size={20} color={colors.verde} />
+                </View>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.quienesCopy}>© 2026 WalkPets · Hecho con ❤️ en Cipolletti</Text>
           </View>
         </View>
       )}
 
+      {/* =====================================================================
+          HERO PRINCIPAL
+          ===================================================================== */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* =====================================================================
-            SECCIÓN HERO — Texto a la izquierda + Logo a la derecha
-            ===================================================================== */}
         <View style={[styles.heroSection, isWide && styles.heroSectionWide]}>
-          {/* Columna izquierda: Texto + CTAs */}
-          <View style={[styles.heroLeft, isWide && styles.heroLeftWide]}>
-            <View style={styles.heroTituloRow}>
-              <Text style={styles.heroTituloWalk}>Walk </Text>
-              <Text style={styles.heroTituloPets}>Pets</Text>
-            </View>
-            <Text style={styles.heroDescripcion}>
-              Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}confianza
-            </Text>
+          {!isWide ? (
+            /* ── MODO MÓVIL: centrado, logo arriba del texto ── */
+            <View style={styles.heroMobile}>
+              {/* Logo circular grande */}
+              <View style={styles.logoWrapper}>
+                <Image source={logo} style={styles.logoImgMobile} resizeMode="contain" />
+              </View>
 
-            {/* Botones de acción en fila */}
-            <View style={styles.ctaContainer}>
-              <TouchableOpacity
-                style={styles.btnPrimario}
-                onPress={() => router.push("/paseadores")}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.btnPrimarioTxt}>Buscar paseadores disponibles</Text>
-              </TouchableOpacity>
+              {/* Descripción */}
+              <Text style={styles.heroDescripcion}>
+                Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}confianza
+              </Text>
 
-              <TouchableOpacity
-                style={styles.btnSecundario}
-                onPress={() => router.push("/paseadores/registro")}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.btnSecundarioTxt}>Quiero ser paseador</Text>
-              </TouchableOpacity>
+              {/* =====================================================================
+                  SECCIÓN DE VIDEO
+                  ===================================================================== */}
+              <View style={styles.videoSection}>
+                <View style={styles.videoHeader}>
+                  <Text style={styles.videoTitulo}>🐾 ¿Por qué es importante pasear a tu mascota?</Text>
+                  <Text style={styles.videoSubtitulo}>Un paseo diario mejora la salud física y mental de tu amigo de 4 patas</Text>
+                </View>
+                <View style={styles.videoContainer}>
+                  <WebView
+                    originWhitelist={['*']}
+                    source={{ html: htmlVideo }}
+                    style={styles.video}
+                    allowsFullscreenVideo
+                    javaScriptEnabled
+                    domStorageEnabled
+                    scrollEnabled={false}
+                    bounces={false}
+                  />
+                </View>
+              </View>
             </View>
-          </View>
-
-          {/* Columna derecha: Logo circular */}
-          <View style={[styles.logoWrapper, isWide && styles.logoWrapperWide]}>
-            <View style={[styles.logoRing, isWide && styles.logoRingWide]}>
-              <Image source={logo} style={styles.logoImg} resizeMode="cover" />
-            </View>
-          </View>
+          ) : (
+            /* ── MODO WIDE: columna izquierda + logo derecha ── */
+            <>
+              <View style={styles.heroLeftWide}>
+                <View style={styles.heroTituloRow}>
+                  <Text style={styles.heroTituloWalk}>Walk </Text>
+                  <Text style={styles.heroTituloPets}>Pets</Text>
+                </View>
+                <Text style={styles.heroDescripcion}>
+                  Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}confianza
+                </Text>
+                <View style={styles.ctaContainerWide}>
+                  <TouchableOpacity
+                    style={styles.btnPrimario}
+                    onPress={() => router.push("/paseadores")}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.btnPrimarioTxt}>Buscar paseadores</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.btnSecundario}
+                    onPress={() => router.push("/paseadores/registro")}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.btnSecundarioTxt}>Quiero ser paseador</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.logoWrapperWide}>
+                <View style={styles.logoRingWide}>
+                  <Image source={logo} style={styles.logoImgWide} resizeMode="cover" />
+                </View>
+              </View>
+            </>
+          )}
         </View>
-        {/* =====================================================================
-            FOOTER
-            ===================================================================== */}
-        <View style={styles.footerAccent} />
 
-        <View style={styles.footer}>
-          {/* Fila principal */}
-          <View style={styles.footerRow}>
-            <Text style={styles.footerTitulo}>Síguenos en</Text>
-
-            <View style={styles.footerIconos}>
-              {/* Instagram */}
-              <TouchableOpacity
-                onPress={() => Linking.openURL("https://instagram.com")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.socialCircle}>
-                  <Entypo name="instagram" size={22} color="#fff" />
-                </View>
-              </TouchableOpacity>
-
-              {/* LinkedIn */}
-              <TouchableOpacity
-                onPress={() => Linking.openURL("https://linkedin.com")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.socialCircle}>
-                  <Entypo name="linkedin" size={22} color="#fff" />
-                </View>
-              </TouchableOpacity>
-
-              {/* X / Twitter */}
-              <TouchableOpacity
-                onPress={() => Linking.openURL("https://x.com")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.socialCircle}>
-                  <FontAwesome name="twitter" size={22} color="#fff" />
-                </View>
-              </TouchableOpacity>
-
-              {/* WhatsApp */}
-              <TouchableOpacity
-                onPress={() => Linking.openURL("https://wa.me/5490000000000")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.socialCircle}>
-                  <FontAwesome name="whatsapp" size={22} color="#fff" />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.footerDivider} />
-
-          {/* Fila inferior: Branding + Copyright */}
-          <View style={styles.footerBottom}>
-            <View style={styles.footerBrandRow}>
-              <Text style={styles.footerPaw}>🐾</Text>
-              <Text style={styles.footerBrandWalk}>Walk</Text>
-              <Text style={styles.footerBrandPets}>Pets</Text>
-            </View>
-            <Text style={styles.footerCopy}>
-              © 2026 WalkPets · Hecho con ❤️ en Cipolletti
-            </Text>
-          </View>
-        </View>
       </ScrollView>
+
+      {/* =====================================================================
+          BOTÓN LIQUID GLASS — flotante al fondo (solo móvil)
+          ===================================================================== */}
+      {!isWide && (
+        <View style={styles.liquidGlassBar}>
+          <TouchableOpacity
+            style={styles.liquidBtnPrimario}
+            onPress={() => router.push("/paseadores")}
+            activeOpacity={0.82}
+          >
+            <Entypo name="magnifying-glass" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.liquidBtnPrimarioTxt}>Buscar paseadores</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -251,54 +308,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  // 👇 AQUÍ AJUSTAS LA POSICIÓN DE TODO EL LOGO Y TEXTO (Subir/Bajar)
   navBrandGroup: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    marginTop: -6, // ← Cambia a un número más negativo para subir, o positivo para bajar
-  },
-
-  // 👇 AQUÍ AJUSTAS EL TAMASÑO DEL MINI LOGO
-  navLogoMini: {
-    width: 50, // ← Ancho del logo (antes era 36)
-    height: 50, // ← Alto del logo (antes era 36)
-    borderRadius: 25, // ← Debe ser la mitad del tamaño (44 / 2) para ser redondo
-    overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: colors.blanco,
-  },
-  navLogoMiniImg: {
-    width: "100%",
-    height: "100%",
+    marginTop: -6,
   },
   navBrand: {
     flexDirection: "row",
     alignItems: "baseline",
   },
-
-  // 👇 AQUÍ AJUSTAS EL TEXTO "Walk"
   navTituloWalk: {
-    fontSize: fonts.sizes.lg + 4, // ← Tamaño de fuente de "Walk"
+    fontSize: fonts.sizes.lg + 4,
     fontWeight: "900",
     color: colors.blanco,
   },
-
-  // 👇 AQUÍ AJUSTAS EL TEXTO "Pets"
   navTituloPets: {
-    fontSize: fonts.sizes.lg + 4, // ← Tamaño de fuente de "Pets"
+    fontSize: fonts.sizes.lg + 4,
     fontWeight: "900",
     color: colors.blanco,
     marginLeft: 2,
   },
-
-  // 👇 AQUÍ AJUSTAS EL TEXTITO DE ABAJO ("PASEADORES")
   navSubtitulo: {
-    fontSize: 9, // ← Tamaño de fuente
+    fontSize: 9,
     fontWeight: "700",
     color: "rgba(255, 255, 255, 0.8)",
     letterSpacing: 3,
-    marginTop: -2, // ← Cambia esto para subir o bajar la palabra "Paseadores"
+    marginTop: -2,
   },
   navBotones: {
     flexDirection: "row",
@@ -346,7 +382,9 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   mobileMenuBtn: {
-    paddingVertical: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm + 2,
   },
   mobileMenuBtnTxt: {
     color: colors.blanco,
@@ -359,7 +397,7 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
 
-  // ─── QUIÉNES SOMOS (panel desplegable) ────────────────────────────
+  // ─── QUIÉNES SOMOS ────────────────────────────────────────────────
   quienesPanel: {
     backgroundColor: colors.verdePastel,
     paddingHorizontal: spacing.lg,
@@ -413,6 +451,35 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 2,
   },
+  quienesSiguenos: {
+    fontSize: fonts.sizes.xs + 1,
+    fontWeight: "700",
+    color: colors.grisOscuro,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginBottom: spacing.sm,
+  },
+  quienesRedes: {
+    flexDirection: "row",
+    gap: spacing.sm + 4,
+    marginBottom: spacing.sm,
+  },
+  quienesRedCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.verdePastel,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.verdeMenta,
+  },
+  quienesCopy: {
+    fontSize: fonts.sizes.xs,
+    color: colors.grisOscuro,
+    textAlign: "center",
+    marginTop: spacing.xs,
+  },
 
   // ─── SCROLL ──────────────────────────────────────────────────────────
   scroll: {
@@ -420,19 +487,18 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 140,
   },
 
   // ─── HERO ────────────────────────────────────────────────────────────
   heroSection: {
     flex: 1,
-    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl + 8,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
     backgroundColor: colors.crema,
-    gap: spacing.lg,
   },
   heroSectionWide: {
     flexDirection: "row",
@@ -442,13 +508,51 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl + 8,
   },
 
-  // Columna izquierda: Texto + CTAs
-  heroLeft: {
-    alignItems: "flex-start",
-    flex: 1,
+  heroMobile: {
+    alignItems: "center",
+    width: "100%",
   },
+
+  // Logo móvil
+  logoWrapper: {
+    width: 340,
+    height: 340,
+    marginBottom: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoImgMobile: {
+    width: "100%",
+    height: "100%",
+  },
+
+  // Logo wide
   heroLeftWide: {
+    flex: 1,
+    alignItems: "flex-start",
     paddingRight: spacing.xl,
+  },
+  logoWrapperWide: {
+    flex: 1,
+    alignItems: "center",
+  },
+  logoRingWide: {
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    borderWidth: 4,
+    borderColor: colors.verde,
+    padding: 6,
+    backgroundColor: colors.blanco,
+    ...shadows.card,
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  logoImgWide: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 200,
   },
 
   heroTituloRow: {
@@ -457,13 +561,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   heroTituloWalk: {
-    fontSize: fonts.sizes.xxxl + 2,
+    fontSize: fonts.sizes.xxxl + 4,
     fontWeight: "900",
     color: colors.negro,
     fontStyle: "italic",
   },
   heroTituloPets: {
-    fontSize: fonts.sizes.xxxl + 2,
+    fontSize: fonts.sizes.xxxl + 4,
     fontWeight: "900",
     color: "rgba(86, 90, 33, 1)",
     fontStyle: "italic",
@@ -471,16 +575,55 @@ const styles = StyleSheet.create({
   heroDescripcion: {
     fontSize: fonts.sizes.md + 1,
     color: colors.grisOscuro,
-    textAlign: "left",
-    lineHeight: 24,
-    marginBottom: spacing.lg,
+    textAlign: "center",
+    lineHeight: 26,
+    marginBottom: spacing.md,
   },
 
-  // CTAs en fila
-  ctaContainer: {
+  // ─── SECCIÓN DE VIDEO ────────────────────────────────────────────────
+  videoSection: {
+    width: "100%",
+    marginTop: spacing.lg,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+    backgroundColor: colors.verdePastel,
+    ...shadows.card,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  videoHeader: {
+    padding: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  videoTitulo: {
+    fontSize: fonts.sizes.md,
+    fontWeight: "800",
+    color: colors.verde,
+    marginBottom: spacing.xs + 2,
+    textAlign: "left",
+  },
+  videoSubtitulo: {
+    fontSize: fonts.sizes.sm - 1,
+    color: colors.grisOscuro,
+    lineHeight: 18,
+    textAlign: "left",
+  },
+  videoContainer: {
+    width: "100%",
+    height: 220,
+    backgroundColor: colors.negro,
+  },
+  video: {
+    width: "100%",
+    height: "100%",
+  },
+
+  ctaContainerWide: {
     flexDirection: "row",
     gap: spacing.sm + 4,
     flexWrap: "wrap",
+    marginTop: spacing.lg,
   },
   btnPrimario: {
     backgroundColor: colors.negro,
@@ -510,109 +653,71 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Columna derecha: Logo
-  logoWrapper: {
-    alignItems: "flex-start",
-  },
-  logoWrapperWide: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  logoRing: {
-    width: 290,
-    height: 290,
-    borderRadius: 130,
-    borderWidth: 4,
-    borderColor: colors.verde,
-    padding: 6,
-    backgroundColor: colors.blanco,
-    ...shadows.card,
-    shadowOpacity: 0.15,
+  // ─── LIQUID GLASS BAR (solo móvil) ────────────────────────────────
+  liquidGlassBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: Platform.OS === "ios" ? 34 : spacing.md,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.7)",
+    gap: spacing.sm,
+    shadowColor: "#3D5A1E",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 20,
   },
-  logoRingWide: {
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-  },
-  logoImg: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 200,
-  },
-
-  // ─── FOOTER ──────────────────────────────────────────────────────────
-  footerAccent: {
-    height: 3,
-    backgroundColor: "rgba(255,255,255,0.3)",
-  },
-  footer: {
-    backgroundColor: "rgba(86, 90, 33, 1)",
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg + 4,
-  },
-  footerRow: {
+  liquidBtnPrimario: {
+    flex: 1,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.md,
-  },
-  footerTitulo: {
-    fontSize: fonts.sizes.md,
-    fontWeight: "700",
-    fontStyle: "italic",
-    color: colors.blanco,
-  },
-  footerIconos: {
-    flexDirection: "row",
-    gap: spacing.sm + 4,
-  },
-  socialCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(86, 90, 33, 0.92)",
+    borderRadius: radius.xl,
+    paddingVertical: spacing.md + 2,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.25)",
+    shadowColor: "#3D5A1E",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  socialIcon: {
-    fontSize: 16,
-    color: colors.blanco,
+  liquidBtnPrimarioTxt: {
+    color: "#fff",
+    fontSize: fonts.sizes.md,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
-  footerDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    marginBottom: spacing.md,
-  },
-  footerBottom: {
-    alignItems: "center",
-  },
-  footerBrandRow: {
+  liquidBtnSecundario: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
-    marginBottom: spacing.xs + 2,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderRadius: radius.xl,
+    paddingVertical: spacing.md,
+    borderWidth: 1.5,
+    borderColor: "rgba(86,90,33,0.3)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  footerPaw: {
-    fontSize: 14,
+  liquidBtnSecundarioTxt: {
+    color: "rgba(86,90,33,1)",
+    fontSize: fonts.sizes.md,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
-  footerBrandWalk: {
-    fontSize: fonts.sizes.sm,
-    fontWeight: "800",
-    color: colors.blanco,
-  },
-  footerBrandPets: {
-    fontSize: fonts.sizes.sm,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.8)",
-  },
-  footerCopy: {
-    fontSize: fonts.sizes.xs - 1,
-    color: "rgba(255,255,255,0.6)",
-    textAlign: "center",
-  },
+
 });
