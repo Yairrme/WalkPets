@@ -9,6 +9,7 @@ const logo = require("../../assets/images/branding/logo.png");
 
 export default function Inicio() {
   const [mostrarQuienes, setMostrarQuienes] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const { width } = useWindowDimensions();
   const isWide = width >= 600;
 
@@ -34,30 +35,64 @@ export default function Inicio() {
           </TouchableOpacity>
 
           <View style={styles.navBotones}>
-            <TouchableOpacity
-              style={styles.navBtnQuienes}
-              onPress={() => setMostrarQuienes(!mostrarQuienes)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.navBtnQuienesTxt,
-                mostrarQuienes && { color: "rgba(255, 255, 255, 0.6)" }
-              ]}>Quiénes somos</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navBtnRegistro} activeOpacity={0.8}>
-              <Text style={styles.navBtnRegistroTxt}>Regístrate</Text>
-            </TouchableOpacity>
+            {isWide && (
+              <>
+                <TouchableOpacity
+                  style={styles.navBtnQuienes}
+                  onPress={() => setMostrarQuienes(!mostrarQuienes)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.navBtnQuienesTxt,
+                    mostrarQuienes && { color: "rgba(255, 255, 255, 0.6)" }
+                  ]}>Quiénes somos</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.navBtnRegistro} activeOpacity={0.8}>
+                  <Text style={styles.navBtnRegistroTxt}>Regístrate</Text>
+                </TouchableOpacity>
+              </>
+            )}
             <TouchableOpacity style={styles.navBtnSesion} activeOpacity={0.8}>
-              <Text style={styles.navBtnSesionTxt}>Iniciar sesión</Text>
+              <Text style={styles.navBtnSesionTxt}>{isWide ? "Iniciar sesión" : "Entrar"}</Text>
             </TouchableOpacity>
+            {!isWide && (
+              <TouchableOpacity onPress={() => setMenuAbierto(!menuAbierto)} style={{ marginLeft: 8, padding: 4 }}>
+                <Entypo name="menu" size={32} color="white" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
+
+      {/* Menú móvil desplegable */}
+      {!isWide && menuAbierto && (
+        <View style={styles.mobileMenu}>
+          <TouchableOpacity
+            style={styles.mobileMenuBtn}
+            onPress={() => {
+              setMenuAbierto(false);
+              setMostrarQuienes(!mostrarQuienes);
+            }}
+          >
+            <Text style={styles.mobileMenuBtnTxt}>Quiénes somos</Text>
+          </TouchableOpacity>
+          <View style={styles.mobileMenuDivider} />
+          <TouchableOpacity style={styles.mobileMenuBtn}>
+            <Text style={styles.mobileMenuBtnTxt}>Regístrate</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Panel desplegable: Quiénes somos */}
       {mostrarQuienes && (
         <View style={styles.quienesPanel}>
           <View style={styles.quienesCard}>
+            <TouchableOpacity 
+              style={{ position: "absolute", top: 8, right: 8, padding: 8, zIndex: 10 }} 
+              onPress={() => setMostrarQuienes(false)}
+            >
+              <Entypo name="cross" size={24} color="#666" />
+            </TouchableOpacity>
             <Text style={styles.quienesEmoji}>🐾</Text>
             <Text style={styles.quienesTitulo}>Sobre WalkPets</Text>
             <Text style={styles.quienesTexto}>
@@ -268,7 +303,7 @@ const styles = StyleSheet.create({
   navBotones: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs + 4,
+    gap: spacing.xs,
   },
   navBtnQuienes: {
     paddingHorizontal: spacing.sm + 2,
@@ -301,6 +336,27 @@ const styles = StyleSheet.create({
     color: "rgba(86, 90, 33, 1)",
     fontSize: fonts.sizes.sm - 1,
     fontWeight: "700",
+  },
+
+  mobileMenu: {
+    backgroundColor: "rgba(86, 90, 33, 1)",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+  },
+  mobileMenuBtn: {
+    paddingVertical: spacing.sm,
+  },
+  mobileMenuBtnTxt: {
+    color: colors.blanco,
+    fontSize: fonts.sizes.md,
+    fontWeight: "600",
+  },
+  mobileMenuDivider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginVertical: spacing.xs,
   },
 
   // ─── QUIÉNES SOMOS (panel desplegable) ────────────────────────────

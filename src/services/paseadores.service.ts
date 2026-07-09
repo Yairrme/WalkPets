@@ -181,32 +181,50 @@ const PASEADORES_MOCK: Paseador[] = [
   },
 ];
 
+// Simula una llamada a la base de datos para obtener todos los paseadores.
+// Retorna una Promesa que resuelve en un arreglo de objetos tipo Paseador.
 export async function getPaseadores(): Promise<Paseador[]> {
+  // Simulamos un retraso de red de 900 milisegundos (0.9 segundos)
   await new Promise((resolve) => setTimeout(resolve, 900));
   return PASEADORES_MOCK;
 }
 
+// Simula la búsqueda de un paseador específico por su ID.
+// Retorna el paseador si lo encuentra, o null si no existe.
 export async function getPaseadorById(id: string): Promise<Paseador | null> {
+  // Simulamos un retraso de red de 500 milisegundos
   await new Promise((resolve) => setTimeout(resolve, 500));
+  // Buscamos en el mock el primer paseador cuyo ID coincida con el solicitado.
+  // El operador ?? null hace que si find() devuelve undefined, retornemos null.
   return PASEADORES_MOCK.find((p) => p.id === id) ?? null;
 }
 
+// Simula el registro de un nuevo paseador en la base de datos.
+// Recibe los datos base, autogenera los faltantes (como el ID o reseñas vacías) y lo guarda.
 export async function registrarPaseador(
   datos: Omit<Paseador, 'id' | 'calificacion' | 'cantidadResenas' | 'resenas' | 'turnosDisponibles'>
 ): Promise<Paseador> {
+  // Simulamos un retraso de red de 800 milisegundos
   await new Promise((resolve) => setTimeout(resolve, 800));
+  
+  // Armamos el objeto completo del nuevo paseador
   const nuevoPaseador: Paseador = {
-    ...datos,
-    id: String(PASEADORES_MOCK.length + 1),
-    calificacion: 5.0,
-    cantidadResenas: 0,
-    resenas: [],
+    ...datos, // Copiamos todos los datos que ingresó el usuario en el formulario
+    id: String(PASEADORES_MOCK.length + 1), // Generamos un ID secuencial básico
+    calificacion: 5.0, // Calificación inicial por defecto
+    cantidadResenas: 0, // Aún no tiene reseñas
+    resenas: [], // Lista de reseñas vacía
+    // Le asignamos algunos turnos disponibles por defecto para que pueda empezar a trabajar
     turnosDisponibles: [
       { id: `t1_${PASEADORES_MOCK.length + 1}`, dia: 'Lunes', horario: '09:00 - 11:00', disponible: true },
       { id: `t2_${PASEADORES_MOCK.length + 1}`, dia: 'Miércoles', horario: '15:00 - 17:00', disponible: true },
       { id: `t3_${PASEADORES_MOCK.length + 1}`, dia: 'Viernes', horario: '10:00 - 12:00', disponible: true },
     ],
   };
+  
+  // Guardamos el nuevo paseador en nuestro arreglo de datos de prueba
   PASEADORES_MOCK.push(nuevoPaseador);
+  
+  // Devolvemos el paseador creado exitosamente
   return nuevoPaseador;
 }
