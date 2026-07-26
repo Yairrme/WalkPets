@@ -46,6 +46,10 @@ export default function RootLayout() {
           name="paseadores/registro"
           options={{ title: "Registrarse como Paseador" }}
         />
+        <Stack.Screen
+          name="login"
+          options={{ title: "Iniciar Sesión" }}
+        />
       </Stack>
     </>
   );

@@ -79,12 +79,20 @@ export default function Inicio() {
                     mostrarQuienes && { color: "rgba(255, 255, 255, 0.6)" }
                   ]}>Quiénes somos</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.navBtnRegistro} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={styles.navBtnRegistro}
+                  activeOpacity={0.8}
+                  onPress={() => router.push("/paseadores/registro")}
+                >
                   <Text style={styles.navBtnRegistroTxt}>Regístrate</Text>
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity style={styles.navBtnSesion} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.navBtnSesion}
+              activeOpacity={0.8}
+              onPress={() => router.push("/login")}
+            >
               <Text style={styles.navBtnSesionTxt}>{isWide ? "Iniciar sesión" : "Entrar"}</Text>
             </TouchableOpacity>
             {!isWide && (
@@ -124,7 +132,13 @@ export default function Inicio() {
           </TouchableOpacity>
           <View style={styles.mobileMenuDivider} />
           {/* 3. Regístrate */}
-          <TouchableOpacity style={styles.mobileMenuBtn}>
+          <TouchableOpacity
+            style={styles.mobileMenuBtn}
+            onPress={() => {
+              setMenuAbierto(false);
+              router.push("/paseadores/registro");
+            }}
+          >
             <Entypo name="add-user" size={15} color={colors.blanco} style={{ marginRight: 10 }} />
             <Text style={styles.mobileMenuBtnTxt}>Regístrate</Text>
           </TouchableOpacity>
