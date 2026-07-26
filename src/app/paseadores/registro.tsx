@@ -16,10 +16,10 @@ import { Paseador } from '../../types/paseador';
 
 // Lista de fotos de avatar preestablecidas para una selección rápida y elegante
 const PRESET_AVATARS = [
-  { id: '1', url: 'https://randomuser.me/api/portraits/women/43.jpg', label: '👩‍🦰 Lucía' },
-  { id: '2', url: 'https://randomuser.me/api/portraits/men/32.jpg', label: '👨 Mateo' },
-  { id: '3', url: 'https://randomuser.me/api/portraits/women/65.jpg', label: '👩 Sofía' },
-  { id: '4', url: 'https://randomuser.me/api/portraits/men/85.jpg', label: '👨 Tomás' },
+  { id: '1', url: 'https://randomuser.me/api/portraits/women/43.jpg', label: 'Lucía' },
+  { id: '2', url: 'https://randomuser.me/api/portraits/men/32.jpg', label: 'Mateo' },
+  { id: '3', url: 'https://randomuser.me/api/portraits/women/65.jpg', label: 'Sofía' },
+  { id: '4', url: 'https://randomuser.me/api/portraits/men/85.jpg', label: 'Tomás' },
 ];
 
 // Opciones de especialidad o razas aceptadas

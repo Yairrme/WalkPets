@@ -3,12 +3,20 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors, fonts, spacing } from '../constants/theme';
 import { AppButton } from './AppButton';
 
+// ============================================================================
+// COMPONENTE: EmptyState
+// Propósito: Mostrar pantallas de estado informativo cuando no hay datos (vacio),
+// cuando ocurre un fallo en la red/servidor (error) o cuando se está buscando
+// información (cargando).
+// ============================================================================
+
 type Props = {
-  tipo: 'vacio' | 'error' | 'cargando';
-  mensaje?: string;
-  onReintentar?: () => void;
+  tipo: 'vacio' | 'error' | 'cargando'; // Tipo de estado a representar
+  mensaje?: string; // Mensaje opcional para sobrescribir el texto por defecto
+  onReintentar?: () => void; // Acción para volver a intentar (usado en 'error')
 };
 
+// Diccionario de configuración con íconos y textos por defecto para cada estado
 const CONFIG = {
   vacio: {
     icono: '🐾',
@@ -28,12 +36,21 @@ const CONFIG = {
 };
 
 export function EmptyState({ tipo, mensaje, onReintentar }: Props) {
+  // Extraemos la configuración correspondiente al tipo solicitado
   const config = CONFIG[tipo];
+
   return (
     <View style={styles.contenedor}>
+      {/* Ícono gigante (emoji) representativo del estado */}
       <Text style={styles.icono}>{config.icono}</Text>
+
+      {/* Título principal del estado */}
       <Text style={styles.titulo}>{config.titulo}</Text>
+
+      {/* Mensaje descriptivo (usa el personalizado si existe, o el por defecto) */}
       <Text style={styles.mensaje}>{mensaje ?? config.mensajePredeterminado}</Text>
+
+      {/* Si el estado es de error y se proporcionó una función onReintentar, muestra un botón */}
       {tipo === 'error' && onReintentar && (
         <AppButton label="Reintentar" onPress={onReintentar} variante="outline" style={styles.boton} />
       )}

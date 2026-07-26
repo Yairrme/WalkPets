@@ -7,13 +7,20 @@ import {
 } from "react-native";
 import { colors, fonts, radius, spacing } from "../constants/theme";
 
+// ============================================================================
+// COMPONENTE: AppButton
+// Propósito: Botón de uso general en toda la aplicación.
+// Soporta diferentes variantes visuales (primario, secundario, outline),
+// estados de carga (cargando con spinner) y deshabilitado.
+// ============================================================================
+
 type Props = {
-  label: string;
-  onPress: () => void;
-  variante?: "primario" | "secundario" | "outline";
-  cargando?: boolean;
-  deshabilitado?: boolean;
-  style?: ViewStyle;
+  label: string; // Texto que se mostrará en el botón
+  onPress: () => void; // Función a ejecutar al presionar el botón
+  variante?: "primario" | "secundario" | "outline"; // Estilo visual del botón
+  cargando?: boolean; // Si es true, muestra un spinner en lugar del texto
+  deshabilitado?: boolean; // Si es true, reduce opacidad y deshabilita clics
+  style?: ViewStyle; // Estilos adicionales personalizados
 };
 
 export function AppButton({
@@ -24,6 +31,7 @@ export function AppButton({
   deshabilitado = false,
   style,
 }: Props) {
+  // Construcción dinámica de estilos para el contenedor del botón
   const estiloBoton = [
     styles.base,
     variante === "primario" && styles.primario,
@@ -33,6 +41,7 @@ export function AppButton({
     style,
   ];
 
+  // Construcción dinámica de estilos para el texto según la variante
   const estiloTexto = [
     styles.texto,
     variante === "outline" && styles.textoOutline,
@@ -43,15 +52,17 @@ export function AppButton({
     <TouchableOpacity
       style={estiloBoton}
       onPress={onPress}
-      disabled={deshabilitado || cargando}
+      disabled={deshabilitado || cargando} // Bloquea interacción si carga o está inactivo
       activeOpacity={0.8}
     >
+      {/* Si está en modo cargando, renderiza el indicador de progreso (spinner) */}
       {cargando ? (
         <ActivityIndicator
           color={variante === "outline" ? colors.verde : colors.blanco}
           size="small"
         />
       ) : (
+        /* Caso contrario, muestra la etiqueta de texto normal */
         <Text style={estiloTexto}>{label}</Text>
       )}
     </TouchableOpacity>
@@ -67,8 +78,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 52,
   },
+  // Variante 1: Fondo verde principal
   primario: { backgroundColor: colors.verde },
+  // Variante 2: Fondo verde claro secundario
   secundario: { backgroundColor: colors.verdeClaro },
+  // Variante 3: Sin fondo, con borde verde
   outline: {
     backgroundColor: "transparent",
     borderWidth: 2,

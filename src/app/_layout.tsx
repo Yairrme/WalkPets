@@ -1,10 +1,8 @@
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Image, View, TouchableOpacity } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+import { View } from "react-native";
 import { colors } from "../constants/theme";
-
-const logo = require("../../assets/Logo Walk Pets.png");
+import { BackButton } from "../components/BackButton";
 
 export default function RootLayout() {
   return (
@@ -17,19 +15,9 @@ export default function RootLayout() {
           headerTitleStyle: { fontWeight: "700", color: colors.blanco },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.crema },
-          headerRight: () => (
-            <View style={{ marginRight: 15 }}>
-              <Image 
-                source={logo} 
-                style={{ 
-                  width: 36, 
-                  height: 36, 
-                  borderRadius: 18, 
-                  borderWidth: 1.5, 
-                  borderColor: colors.blanco 
-                }} 
-                resizeMode="cover"
-              />
+          headerLeft: () => (
+            <View style={{ marginRight: 12 }}>
+              <BackButton onPress={() => router.back()} />
             </View>
           ),
         }}
@@ -38,16 +26,12 @@ export default function RootLayout() {
         <Stack.Screen
           name="paseadores/index"
           options={{ 
-            title: "Paseadores en Cipolletti",
+            title: "Paseadores",
             headerLeft: () => (
-              <TouchableOpacity 
-                onPress={() => router.push("/")} 
-                style={{ marginRight: 15 }}
-                activeOpacity={0.8}
-              >
-                <FontAwesome name="arrow-left" size={20} color={colors.blanco} />
-              </TouchableOpacity>
-            )
+              <View style={{ marginRight: 12 }}>
+                <BackButton onPress={() => router.push("/")} />
+              </View>
+            ),
           }}
         />
         <Stack.Screen

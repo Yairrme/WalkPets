@@ -1,22 +1,22 @@
+import { FontAwesome } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
   ActivityIndicator,
-  TouchableOpacity,
+  Image,
   Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Paseador } from '../../types/paseador';
-import { getPaseadorById } from '../../services/paseadores.service';
 import { AppButton } from '../../components/AppButton';
 import { EmptyState } from '../../components/EmptyState';
 import { StarRating } from '../../components/StarRating';
 import { colors, fonts, radius, shadows, spacing } from '../../constants/theme';
+import { getPaseadorById } from '../../services/paseadores.service';
+import { Paseador } from '../../types/paseador';
 
 export default function DetallePaseador() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,8 +67,8 @@ export default function DetallePaseador() {
           <Text style={styles.resenasCantidad}>
             {paseador.cantidadResenas} reseñas
           </Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.instagramBtn}
             onPress={() => Linking.openURL('https://instagram.com/')}
             activeOpacity={0.8}

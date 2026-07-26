@@ -26,7 +26,7 @@ export default function ListaPaseadores() {
   const [paseadores, setPaseadores] = useState<Paseador[]>([]);
   const [estado, setEstado] = useState<Estado>('cargando');
   const [soloDisponibles, setSoloDisponibles] = useState(false);
-  const [barrioSeleccionado, setBarrioSeleccionado] = useState<string | null>(null);
+  const [ciudadSeleccionada, setCiudadSeleccionada] = useState<string | null>(null);
 
   const cargar = async () => {
     setEstado('cargando');
@@ -41,26 +41,26 @@ export default function ListaPaseadores() {
 
   useEffect(() => { cargar(); }, []);
 
-  // Lista de barrios únicos extraída de los datos
-  const barrios = useMemo(() => {
-    const todos = paseadores.map((p) => p.barrio);
-    return [...new Set(todos)];
+  // Lista de ciudades únicas extraída de los datos (escalable para futuras ciudades)
+  const ciudades = useMemo(() => {
+    const todas = paseadores.map((p) => p.ciudad).filter(Boolean);
+    return [...new Set(todas)].sort();
   }, [paseadores]);
 
   // Paseadores filtrados según los filtros activos
   const paseadoresFiltrados = useMemo(() => {
     return paseadores.filter((p) => {
       if (soloDisponibles && !p.disponible) return false;
-      if (barrioSeleccionado && p.barrio !== barrioSeleccionado) return false;
+      if (ciudadSeleccionada && p.ciudad !== ciudadSeleccionada) return false;
       return true;
     });
-  }, [paseadores, soloDisponibles, barrioSeleccionado]);
+  }, [paseadores, soloDisponibles, ciudadSeleccionada]);
 
-  const hayFiltrosActivos = soloDisponibles || barrioSeleccionado !== null;
+  const hayFiltrosActivos = soloDisponibles || ciudadSeleccionada !== null;
 
   const limpiarFiltros = () => {
     setSoloDisponibles(false);
-    setBarrioSeleccionado(null);
+    setCiudadSeleccionada(null);
   };
 
   if (estado === 'cargando') {
@@ -94,23 +94,23 @@ export default function ListaPaseadores() {
           {/* Separador */}
           <View style={styles.separador} />
 
-          {/* Chips de barrio */}
-          {barrios.map((barrio) => (
+          {/* Chips de ciudad */}
+          {ciudades.map((ciudad) => (
             <TouchableOpacity
-              key={barrio}
-              style={[styles.chip, barrioSeleccionado === barrio && styles.chipActivo]}
+              key={ciudad}
+              style={[styles.chip, ciudadSeleccionada === ciudad && styles.chipActivo]}
               onPress={() =>
-                setBarrioSeleccionado(barrioSeleccionado === barrio ? null : barrio)
+                setCiudadSeleccionada(ciudadSeleccionada === ciudad ? null : ciudad)
               }
               activeOpacity={0.8}
             >
               <Text
                 style={[
                   styles.chipTexto,
-                  barrioSeleccionado === barrio && styles.chipTextoActivo,
+                  ciudadSeleccionada === ciudad && styles.chipTextoActivo,
                 ]}
               >
-                📍 {barrio}
+                📍 {ciudad}
               </Text>
             </TouchableOpacity>
           ))}
@@ -135,7 +135,7 @@ export default function ListaPaseadores() {
         ListHeaderComponent={
           <Text style={styles.encabezado}>
             {paseadoresFiltrados.length} de {paseadores.length} paseadores
-            {hayFiltrosActivos ? ' (filtrado)' : ' en Cipolletti'}
+            {ciudadSeleccionada ? ` en ${ciudadSeleccionada}` : hayFiltrosActivos ? ' (filtrados)' : ' en total'}
           </Text>
         }
         ListEmptyComponent={
