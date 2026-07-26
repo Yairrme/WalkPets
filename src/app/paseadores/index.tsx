@@ -1,20 +1,19 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { router } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   Text,
   TouchableOpacity,
-  ScrollView,
   useWindowDimensions,
+  View
 } from 'react-native';
-import { router } from 'expo-router';
-import { Paseador } from '../../types/paseador';
-import { getPaseadores } from '../../services/paseadores.service';
-import { PaseadorCard } from '../../components/PaseadorCard';
 import { EmptyState } from '../../components/EmptyState';
+import { PaseadorCard } from '../../components/PaseadorCard';
 import { colors, fonts, radius, spacing } from '../../constants/theme';
+import { getPaseadores } from '../../services/paseadores.service';
+import { Paseador } from '../../types/paseador';
 
 type Estado = 'cargando' | 'exito' | 'error' | 'vacio';
 
@@ -26,7 +25,7 @@ export default function ListaPaseadores() {
   const [paseadores, setPaseadores] = useState<Paseador[]>([]);
   const [estado, setEstado] = useState<Estado>('cargando');
   const [soloDisponibles, setSoloDisponibles] = useState(false);
-  const [ciudadSeleccionada, setCiudadSeleccionada] = useState<string | null>(null);
+  const [barrioSeleccionado, setBarrioSeleccionado] = useState<string | null>(null);
 
   const cargar = async () => {
     setEstado('cargando');
@@ -41,26 +40,26 @@ export default function ListaPaseadores() {
 
   useEffect(() => { cargar(); }, []);
 
-  // Lista de ciudades únicas extraída de los datos (escalable para futuras ciudades)
-  const ciudades = useMemo(() => {
-    const todas = paseadores.map((p) => p.ciudad).filter(Boolean);
-    return [...new Set(todas)].sort();
+  // Lista de barrios únicos extraída de los datos
+  const barrios = useMemo(() => {
+    const todos = paseadores.map((p) => p.barrio);
+    return [...new Set(todos)];
   }, [paseadores]);
 
   // Paseadores filtrados según los filtros activos
   const paseadoresFiltrados = useMemo(() => {
     return paseadores.filter((p) => {
       if (soloDisponibles && !p.disponible) return false;
-      if (ciudadSeleccionada && p.ciudad !== ciudadSeleccionada) return false;
+      if (barrioSeleccionado && p.barrio !== barrioSeleccionado) return false;
       return true;
     });
-  }, [paseadores, soloDisponibles, ciudadSeleccionada]);
+  }, [paseadores, soloDisponibles, barrioSeleccionado]);
 
-  const hayFiltrosActivos = soloDisponibles || ciudadSeleccionada !== null;
+  const hayFiltrosActivos = soloDisponibles || barrioSeleccionado !== null;
 
   const limpiarFiltros = () => {
     setSoloDisponibles(false);
-    setCiudadSeleccionada(null);
+    setBarrioSeleccionado(null);
   };
 
   if (estado === 'cargando') {
@@ -94,23 +93,23 @@ export default function ListaPaseadores() {
           {/* Separador */}
           <View style={styles.separador} />
 
-          {/* Chips de ciudad */}
-          {ciudades.map((ciudad) => (
+          {/* Chips de barrio */}
+          {barrios.map((barrio) => (
             <TouchableOpacity
-              key={ciudad}
-              style={[styles.chip, ciudadSeleccionada === ciudad && styles.chipActivo]}
+              key={barrio}
+              style={[styles.chip, barrioSeleccionado === barrio && styles.chipActivo]}
               onPress={() =>
-                setCiudadSeleccionada(ciudadSeleccionada === ciudad ? null : ciudad)
+                setBarrioSeleccionado(barrioSeleccionado === barrio ? null : barrio)
               }
               activeOpacity={0.8}
             >
               <Text
                 style={[
                   styles.chipTexto,
-                  ciudadSeleccionada === ciudad && styles.chipTextoActivo,
+                  barrioSeleccionado === barrio && styles.chipTextoActivo,
                 ]}
               >
-                📍 {ciudad}
+                📍 {barrio}
               </Text>
             </TouchableOpacity>
           ))}
@@ -135,7 +134,7 @@ export default function ListaPaseadores() {
         ListHeaderComponent={
           <Text style={styles.encabezado}>
             {paseadoresFiltrados.length} de {paseadores.length} paseadores
-            {ciudadSeleccionada ? ` en ${ciudadSeleccionada}` : hayFiltrosActivos ? ' (filtrados)' : ' en total'}
+            {hayFiltrosActivos ? ' (filtrado)' : ' en Cipolletti'}
           </Text>
         }
         ListEmptyComponent={

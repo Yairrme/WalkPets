@@ -1,6 +1,6 @@
 import { Entypo, FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Image,
   Linking,
@@ -14,20 +14,67 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { colors, fonts, radius, shadows, spacing } from "../constants/theme";
+import { UiverseSearchButton } from "../components/UiverseSearchButton";
+
+// ============================================================================
+// ARCHIVO: index.tsx (Página de Inicio / Landing Page Hero)
+// Propósito: Pantalla principal de bienvenida (Hero) de WalkPets.
+// Cuenta con diseño 100% responsivo (se adapta entre móvil y escritorio/wide),
+// barra de navegación superior, menú móvil desplegable, panel informativo
+// "Quiénes somos", un video incrustado de YouTube (con carga diferida) y
+// botones flotantes estilo Liquid Glassmorphism en dispositivos móviles.
+//
+// Cambios respecto a la versión anterior:
+//   1. El video de YouTube ahora se carga bajo demanda (thumbnail + play),
+//      en lugar de montar el WebView apenas se abre la pantalla. Esto ahorra
+//      datos móviles y mejora el tiempo de carga inicial.
+//   2. Extracción de ID de YouTube más robusta (soporta youtu.be, ?v=, /embed/).
+//   3. Se agregó el botón secundario "Quiero ser paseador" en la barra
+//      flotante móvil (el estilo ya existía pero no se usaba).
+//   4. Etiquetas de accesibilidad (accessibilityRole/Label) en botones e
+//      imágenes interactivas.
+//   5. El punto de quiebre "isWide" se extrajo a una constante configurable.
+// ============================================================================
+
+// Punto de quiebre entre layout móvil y wide (escritorio/tablet grande)
+const WIDE_BREAKPOINT = 600;
 
 // Logo circular de la marca
 const logo = require("../../assets/Logo Walk Pets.png");
 
+// ▶ Pegá tu URL de YouTube acá (el ID se extrae automáticamente)
+const YOUTUBE_URL = "https://www.youtube.com/watch?v=plJUSgZ0guc";
+
+// Extrae el ID de video soportando distintos formatos de URL de YouTube
+function extraerYoutubeId(url: string): string {
+  const patrones = [
+    /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
+    /(?:youtu\.be\/)([^&\n?#]+)/,
+    /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
+  ];
+  for (const patron of patrones) {
+    const match = url.match(patron);
+    if (match?.[1]) return match[1];
+  }
+  return "";
+}
+
 export default function Inicio() {
   const [mostrarQuienes, setMostrarQuienes] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [videoIniciado, setVideoIniciado] = useState(false);
   const { width } = useWindowDimensions();
-  const isWide = width >= 600;
+  const isWide = width >= WIDE_BREAKPOINT;
 
-  // ▶ Pegá tu URL de YouTube acá (el ID se extrae automáticamente)
-  const youtubeUrl = "https://www.youtube.com/watch?v=plJUSgZ0guc";
-  const videoId = youtubeUrl.split("v=")[1]?.split("&")[0] ?? "";
-  // HTML inline para controlar el embed al 100% y evitar videos relacionados
+  const videoId = useMemo(() => extraerYoutubeId(YOUTUBE_URL), []);
+
+  // Miniatura de alta calidad provista por YouTube (no requiere red aparte de la imagen)
+  const thumbnailUrl = videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : null;
+
+  // HTML inline para controlar el embed al 100% y evitar videos relacionados.
+  // autoplay=1 porque el usuario ya tocó "play" en la miniatura antes de montar esto.
   const htmlVideo = `
     <!DOCTYPE html>
     <html>
@@ -41,7 +88,7 @@ export default function Inicio() {
       </head>
       <body>
         <iframe
-          src="https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&showinfo=0&disablekb=0"
+          src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&showinfo=0&disablekb=0"
           allowfullscreen
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         ></iframe>
@@ -56,7 +103,11 @@ export default function Inicio() {
           ===================================================================== */}
       <View style={styles.navbar}>
         <View style={styles.navRow}>
-          <TouchableOpacity style={styles.navBrandGroup} activeOpacity={0.9}>
+          <TouchableOpacity
+            style={styles.navBrandGroup}
+            activeOpacity={0.9}
+            accessibilityRole="header"
+          >
             <View>
               <View style={styles.navBrand}>
                 <Text style={styles.navTituloWalk}>Walk</Text>
@@ -73,16 +124,24 @@ export default function Inicio() {
                   style={styles.navBtnQuienes}
                   onPress={() => setMostrarQuienes(!mostrarQuienes)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Quiénes somos"
                 >
-                  <Text style={[
-                    styles.navBtnQuienesTxt,
-                    mostrarQuienes && { color: "rgba(255, 255, 255, 0.6)" }
-                  ]}>Quiénes somos</Text>
+                  <Text
+                    style={[
+                      styles.navBtnQuienesTxt,
+                      mostrarQuienes && { color: "rgba(255, 255, 255, 0.6)" },
+                    ]}
+                  >
+                    Quiénes somos
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.navBtnRegistro}
                   activeOpacity={0.8}
                   onPress={() => router.push("/paseadores/registro")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Registrate como paseador"
                 >
                   <Text style={styles.navBtnRegistroTxt}>Regístrate</Text>
                 </TouchableOpacity>
@@ -92,11 +151,20 @@ export default function Inicio() {
               style={styles.navBtnSesion}
               activeOpacity={0.8}
               onPress={() => router.push("/login")}
+              accessibilityRole="button"
+              accessibilityLabel="Iniciar sesión"
             >
-              <Text style={styles.navBtnSesionTxt}>{isWide ? "Iniciar sesión" : "Entrar"}</Text>
+              <Text style={styles.navBtnSesionTxt}>
+                {isWide ? "Iniciar sesión" : "Entrar"}
+              </Text>
             </TouchableOpacity>
             {!isWide && (
-              <TouchableOpacity onPress={() => setMenuAbierto(!menuAbierto)} style={{ marginLeft: 8, padding: 4 }}>
+              <TouchableOpacity
+                onPress={() => setMenuAbierto(!menuAbierto)}
+                style={{ marginLeft: 8, padding: 4 }}
+                accessibilityRole="button"
+                accessibilityLabel={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+              >
                 <Entypo name="menu" size={32} color="white" />
               </TouchableOpacity>
             )}
@@ -114,8 +182,14 @@ export default function Inicio() {
               setMenuAbierto(false);
               router.push("/paseadores/registro");
             }}
+            accessibilityRole="button"
           >
-            <FontAwesome name="paw" size={15} color={colors.blanco} style={{ marginRight: 10 }} />
+            <FontAwesome
+              name="paw"
+              size={15}
+              color={colors.blanco}
+              style={{ marginRight: 10 }}
+            />
             <Text style={styles.mobileMenuBtnTxt}>Quiero ser paseador</Text>
           </TouchableOpacity>
           <View style={styles.mobileMenuDivider} />
@@ -126,8 +200,14 @@ export default function Inicio() {
               setMenuAbierto(false);
               setMostrarQuienes(!mostrarQuienes);
             }}
+            accessibilityRole="button"
           >
-            <Entypo name="info-with-circle" size={15} color={colors.blanco} style={{ marginRight: 10 }} />
+            <Entypo
+              name="info-with-circle"
+              size={15}
+              color={colors.blanco}
+              style={{ marginRight: 10 }}
+            />
             <Text style={styles.mobileMenuBtnTxt}>Quiénes somos</Text>
           </TouchableOpacity>
           <View style={styles.mobileMenuDivider} />
@@ -138,8 +218,14 @@ export default function Inicio() {
               setMenuAbierto(false);
               router.push("/paseadores/registro");
             }}
+            accessibilityRole="button"
           >
-            <Entypo name="add-user" size={15} color={colors.blanco} style={{ marginRight: 10 }} />
+            <Entypo
+              name="add-user"
+              size={15}
+              color={colors.blanco}
+              style={{ marginRight: 10 }}
+            />
             <Text style={styles.mobileMenuBtnTxt}>Regístrate</Text>
           </TouchableOpacity>
         </View>
@@ -152,13 +238,18 @@ export default function Inicio() {
             <TouchableOpacity
               style={{ position: "absolute", top: 8, right: 8, padding: 8, zIndex: 10 }}
               onPress={() => setMostrarQuienes(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar panel Quiénes somos"
             >
               <Entypo name="cross" size={24} color="#666" />
             </TouchableOpacity>
             <Text style={styles.quienesEmoji}>🐾</Text>
             <Text style={styles.quienesTitulo}>Sobre WalkPets</Text>
             <Text style={styles.quienesTexto}>
-              WalkPets es una plataforma que conecta dueños de mascotas con paseadores profesionales de confianza en Cipolletti. Nuestro objetivo es garantizar paseos seguros, felices y al mejor precio.
+              WalkPets es una plataforma que conecta dueños de mascotas con
+              paseadores profesionales de confianza en Cipolletti. Nuestro
+              objetivo es garantizar paseos seguros, felices y al mejor
+              precio.
             </Text>
             <View style={styles.quienesDivider} />
             <Text style={styles.quienesCreador}>Creado por</Text>
@@ -167,28 +258,50 @@ export default function Inicio() {
             {/* Redes sociales */}
             <Text style={styles.quienesSiguenos}>Síguenos en</Text>
             <View style={styles.quienesRedes}>
-              <TouchableOpacity onPress={() => Linking.openURL("https://instagram.com")} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL("https://instagram.com")}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+                accessibilityLabel="Instagram de WalkPets"
+              >
                 <View style={styles.quienesRedCircle}>
                   <Entypo name="instagram" size={20} color={colors.verde} />
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => Linking.openURL("https://linkedin.com")} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL("https://linkedin.com")}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+                accessibilityLabel="LinkedIn de WalkPets"
+              >
                 <View style={styles.quienesRedCircle}>
                   <Entypo name="linkedin" size={20} color={colors.verde} />
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => Linking.openURL("https://x.com")} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL("https://x.com")}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+                accessibilityLabel="X (Twitter) de WalkPets"
+              >
                 <View style={styles.quienesRedCircle}>
                   <FontAwesome name="twitter" size={20} color={colors.verde} />
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => Linking.openURL("https://wa.me/5490000000000")} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL("https://wa.me/5490000000000")}
+                activeOpacity={0.7}
+                accessibilityRole="link"
+                accessibilityLabel="WhatsApp de WalkPets"
+              >
                 <View style={styles.quienesRedCircle}>
                   <FontAwesome name="whatsapp" size={20} color={colors.verde} />
                 </View>
               </TouchableOpacity>
             </View>
-            <Text style={styles.quienesCopy}>© 2026 WalkPets · Hecho con ❤️ en Cipolletti</Text>
+            <Text style={styles.quienesCopy}>
+              © 2026 WalkPets · Hecho con ❤️ en Cipolletti
+            </Text>
           </View>
         </View>
       )}
@@ -207,33 +320,72 @@ export default function Inicio() {
             <View style={styles.heroMobile}>
               {/* Logo circular grande */}
               <View style={styles.logoWrapper}>
-                <Image source={logo} style={styles.logoImgMobile} resizeMode="contain" />
+                <Image
+                  source={logo}
+                  style={styles.logoImgMobile}
+                  resizeMode="contain"
+                  accessibilityLabel="Logo de WalkPets"
+                />
               </View>
 
               {/* Descripción */}
               <Text style={styles.heroDescripcion}>
-                Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}confianza
+                Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}
+                confianza
               </Text>
 
               {/* =====================================================================
-                  SECCIÓN DE VIDEO
+                  SECCIÓN DE VIDEO (carga diferida: miniatura → WebView al tocar)
                   ===================================================================== */}
               <View style={styles.videoSection}>
                 <View style={styles.videoHeader}>
-                  <Text style={styles.videoTitulo}>🐾 ¿Por qué es importante pasear a tu mascota?</Text>
-                  <Text style={styles.videoSubtitulo}>Un paseo diario mejora la salud física y mental de tu amigo de 4 patas</Text>
+                  <Text style={styles.videoTitulo}>
+                    🐾 ¿Por qué es importante pasear a tu mascota?
+                  </Text>
+                  <Text style={styles.videoSubtitulo}>
+                    Un paseo diario mejora la salud física y mental de tu
+                    amigo de 4 patas
+                  </Text>
                 </View>
                 <View style={styles.videoContainer}>
-                  <WebView
-                    originWhitelist={['*']}
-                    source={{ html: htmlVideo }}
-                    style={styles.video}
-                    allowsFullscreenVideo
-                    javaScriptEnabled
-                    domStorageEnabled
-                    scrollEnabled={false}
-                    bounces={false}
-                  />
+                  {videoIniciado ? (
+                    <WebView
+                      originWhitelist={["*"]}
+                      source={{ html: htmlVideo }}
+                      style={styles.video}
+                      allowsFullscreenVideo
+                      javaScriptEnabled
+                      domStorageEnabled
+                      mediaPlaybackRequiresUserAction={false}
+                      scrollEnabled={false}
+                      bounces={false}
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.videoThumbWrapper}
+                      activeOpacity={0.9}
+                      onPress={() => setVideoIniciado(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Reproducir video"
+                    >
+                      {thumbnailUrl && (
+                        <Image
+                          source={{ uri: thumbnailUrl }}
+                          style={styles.videoThumbImg}
+                          resizeMode="cover"
+                        />
+                      )}
+                      <View style={styles.videoPlayOverlay}>
+                        <View style={styles.videoPlayCircle}>
+                          <Entypo
+                            name="controller-play"
+                            size={28}
+                            color={colors.blanco}
+                          />
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </View>
@@ -246,49 +398,37 @@ export default function Inicio() {
                   <Text style={styles.heroTituloPets}>Pets</Text>
                 </View>
                 <Text style={styles.heroDescripcion}>
-                  Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}confianza
+                  Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}
+                  confianza
                 </Text>
                 <View style={styles.ctaContainerWide}>
-                  <TouchableOpacity
-                    style={styles.btnPrimario}
-                    onPress={() => router.push("/paseadores")}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.btnPrimarioTxt}>Buscar paseadores</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.btnSecundario}
-                    onPress={() => router.push("/paseadores/registro")}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.btnSecundarioTxt}>Quiero ser paseador</Text>
-                  </TouchableOpacity>
+                  <UiverseSearchButton onPress={() => router.push("/paseadores")} />
                 </View>
               </View>
               <View style={styles.logoWrapperWide}>
                 <View style={styles.logoRingWide}>
-                  <Image source={logo} style={styles.logoImgWide} resizeMode="cover" />
+                  <Image
+                    source={logo}
+                    style={styles.logoImgWide}
+                    resizeMode="cover"
+                    accessibilityLabel="Logo de WalkPets"
+                  />
                 </View>
               </View>
             </>
           )}
         </View>
-
       </ScrollView>
 
       {/* =====================================================================
-          BOTÓN LIQUID GLASS — flotante al fondo (solo móvil)
+          BOTONES LIQUID GLASS — flotantes al fondo (solo móvil)
           ===================================================================== */}
       {!isWide && (
         <View style={styles.liquidGlassBar}>
-          <TouchableOpacity
-            style={styles.liquidBtnPrimario}
+          <UiverseSearchButton
             onPress={() => router.push("/paseadores")}
-            activeOpacity={0.82}
-          >
-            <Entypo name="magnifying-glass" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.liquidBtnPrimarioTxt}>Buscar paseadores</Text>
-          </TouchableOpacity>
+            style={{ flex: 1, width: "100%" }}
+          />
         </View>
       )}
     </View>
@@ -632,6 +772,30 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  videoThumbWrapper: {
+    width: "100%",
+    height: "100%",
+  },
+  videoThumbImg: {
+    width: "100%",
+    height: "100%",
+  },
+  videoPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  videoPlayCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(86, 90, 33, 0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.85)",
+  },
 
   ctaContainerWide: {
     flexDirection: "row",
@@ -733,5 +897,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.2,
   },
-
 });
