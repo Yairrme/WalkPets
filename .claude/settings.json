@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm test)",
+      "Bash(npm run test:*)",
+      "Bash(npm run verify)",
+      "Bash(npm --prefix backend run typecheck)",
+      "Bash(npm --prefix backend test)",
+      "Bash(npm --prefix backend run verify)",
+      "Bash(npm --prefix backend run build)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./backend/.env)",
+      "Edit(./.env)",
+      "Edit(./backend/.env)",
+      "Bash(node scripts/reset-project.js*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guardrails.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint-archivo.js\"",
+            "timeout": 60,
+            "statusMessage": "ESLint sobre el archivo editado..."
+          }
+        ]
+      }
+    ]
+  }
+}
