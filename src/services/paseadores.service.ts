@@ -1,8 +1,15 @@
-import { Paseador } from '../types/paseador';
+import { esCiudad } from '../constants/ciudades';
+import { usarApi } from '../config/api';
+import { NuevoPaseadorInput, Paseador, Resena, Sesion } from '../types/paseador';
+import { normalizarTelefono } from '../utils/telefono';
+import { apiFetch, ApiError } from './api/client';
+import { registrarCuentaPaseadorMock } from './auth.service';
+import { guardarSesion, obtenerSesionGuardada } from './sesion.service';
 
 const PASEADORES_MOCK: Paseador[] = [
   {
     id: '1',
+    usuarioId: 'demo-paseador',
     nombre: 'Lucía',
     apellido: 'Fernández',
     foto: 'https://randomuser.me/api/portraits/women/32.jpg',
@@ -146,7 +153,7 @@ const PASEADORES_MOCK: Paseador[] = [
     nombre: 'Santiago',
     apellido: 'Morales',
     foto: 'https://randomuser.me/api/portraits/men/22.jpg',
-    barrio: 'Centro',
+    barrio: 'Neuquén Centro',
     ciudad: 'Neuquén',
     descripcion:
       'Me encanta pasar tiempo con perros. Paseos tranquilos por el barrio, ideal para perros mayores o con movilidad reducida.',
@@ -181,50 +188,265 @@ const PASEADORES_MOCK: Paseador[] = [
   },
 ];
 
-// Simula una llamada a la base de datos para obtener todos los paseadores.
-// Retorna una Promesa que resuelve en un arreglo de objetos tipo Paseador.
+type ResenaApi = {
+  id: string;
+  autorNombre: string;
+  mascota: string;
+  texto: string;
+  calificacion: number;
+  fecha: string;
+};
+
+type PaseadorApi = {
+  id: string;
+  usuarioId?: string;
+  nombre: string;
+  apellido: string;
+  fotoUrl: string;
+  ciudad: string;
+  barrio: string;
+  descripcion: string;
+  precioHora: number;
+  telefono: string;
+  disponible: boolean;
+  razasAceptadas: string[];
+  calificacionPromedio: number;
+  cantidadResenas: number;
+  resenas?: ResenaApi[];
+  esPropietario?: boolean;
+};
+
+type RespuestaRegistroPaseador = {
+  accessToken: string;
+  usuario: {
+    id: string;
+    nombre: string;
+    apellido: string;
+    email: string;
+    telefono?: string | null;
+    rol: 'cliente' | 'paseador';
+  };
+  paseador: PaseadorApi;
+};
+
+function mapResena(dto: ResenaApi): Resena {
+  return {
+    id: dto.id,
+    autor: dto.autorNombre,
+    mascota: dto.mascota,
+    texto: dto.texto,
+    calificacion: dto.calificacion,
+    fecha: dto.fecha.slice(0, 10),
+  };
+}
+
+function mapPaseador(dto: PaseadorApi): Paseador {
+  return {
+    id: dto.id,
+    usuarioId: dto.usuarioId,
+    nombre: dto.nombre,
+    apellido: dto.apellido,
+    foto: dto.fotoUrl ?? '',
+    barrio: dto.barrio,
+    ciudad: dto.ciudad as Paseador['ciudad'],
+    descripcion: dto.descripcion,
+    precioHora: dto.precioHora,
+    calificacion: dto.calificacionPromedio,
+    cantidadResenas: dto.cantidadResenas,
+    telefono: dto.telefono,
+    disponible: dto.disponible,
+    razasAceptadas: dto.razasAceptadas,
+    resenas: (dto.resenas ?? []).map(mapResena),
+    turnosDisponibles: [],
+    esPropietario: dto.esPropietario,
+  };
+}
+
+function copiarPaseador(paseador: Paseador): Paseador {
+  return {
+    ...paseador,
+    razasAceptadas: [...paseador.razasAceptadas],
+    resenas: [...paseador.resenas],
+    turnosDisponibles: [...paseador.turnosDisponibles],
+  };
+}
+
+// Obtiene el listado de paseadores desde la API o desde el mock.
 export async function getPaseadores(): Promise<Paseador[]> {
+  if (usarApi()) {
+    const datos = await apiFetch<PaseadorApi[]>('/paseadores');
+    return datos.map(mapPaseador);
+  }
+
   // Simulamos un retraso de red de 900 milisegundos (0.9 segundos)
   await new Promise((resolve) => setTimeout(resolve, 900));
-  return PASEADORES_MOCK;
+  // Devolvemos copias para que las pantallas no muten el arreglo interno.
+  return PASEADORES_MOCK.map(copiarPaseador);
 }
 
-// Simula la búsqueda de un paseador específico por su ID.
-// Retorna el paseador si lo encuentra, o null si no existe.
+// Busca un paseador específico por su ID. Devuelve null si no existe.
 export async function getPaseadorById(id: string): Promise<Paseador | null> {
+  if (usarApi()) {
+    const sesion = await obtenerSesionGuardada();
+    try {
+      const datos = await apiFetch<PaseadorApi>(`/paseadores/${id}`, {
+        token: sesion?.token,
+      });
+      return mapPaseador(datos);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   // Simulamos un retraso de red de 500 milisegundos
   await new Promise((resolve) => setTimeout(resolve, 500));
-  // Buscamos en el mock el primer paseador cuyo ID coincida con el solicitado.
-  // El operador ?? null hace que si find() devuelve undefined, retornemos null.
-  return PASEADORES_MOCK.find((p) => p.id === id) ?? null;
+  const paseador = PASEADORES_MOCK.find((p) => p.id === id);
+  if (!paseador) return null;
+
+  const sesion = await obtenerSesionGuardada();
+  return {
+    ...copiarPaseador(paseador),
+    esPropietario: Boolean(sesion && paseador.usuarioId === sesion.usuario.id),
+  };
 }
 
-// Simula el registro de un nuevo paseador en la base de datos.
-// Recibe los datos base, autogenera los faltantes (como el ID o reseñas vacías) y lo guarda.
-export async function registrarPaseador(
-  datos: Omit<Paseador, 'id' | 'calificacion' | 'cantidadResenas' | 'resenas' | 'turnosDisponibles'>
-): Promise<Paseador> {
+function generarIdPaseador(): string {
+  const maximo = PASEADORES_MOCK.reduce((max, paseador) => {
+    const numero = Number.parseInt(paseador.id, 10);
+    return Number.isNaN(numero) ? max : Math.max(max, numero);
+  }, 0);
+
+  return String(maximo + 1);
+}
+
+function validarDatosRegistro(datos: NuevoPaseadorInput): string {
+  if (!esCiudad(datos.ciudad)) {
+    throw new Error('La ciudad debe ser Cipolletti o Neuquén');
+  }
+
+  const telefonoNormalizado = normalizarTelefono(datos.telefono);
+  if (!telefonoNormalizado) {
+    throw new Error('El teléfono no es válido');
+  }
+
+  return `+${telefonoNormalizado}`;
+}
+
+// Registra un paseador. En modo API crea la cuenta y el perfil en el backend.
+export async function registrarPaseador(datos: NuevoPaseadorInput): Promise<Paseador> {
+  const telefono = validarDatosRegistro(datos);
+
+  if (usarApi()) {
+    if (!datos.email || !datos.password) {
+      throw new Error('El correo y la contraseña son obligatorios para registrarse');
+    }
+
+    const respuesta = await apiFetch<RespuestaRegistroPaseador>('/auth/registro', {
+      method: 'POST',
+      body: {
+        nombre: datos.nombre,
+        apellido: datos.apellido,
+        email: datos.email,
+        password: datos.password,
+        telefono,
+        rol: 'paseador',
+        paseador: {
+          fotoUrl: datos.foto,
+          ciudad: datos.ciudad,
+          barrio: datos.barrio,
+          descripcion: datos.descripcion,
+          precioHora: datos.precioHora,
+          razasAceptadas: datos.razasAceptadas,
+        },
+      },
+    });
+
+    const sesion: Sesion = {
+      token: respuesta.accessToken,
+      usuario: {
+        ...respuesta.usuario,
+        telefono: respuesta.usuario.telefono ?? undefined,
+      },
+    };
+    await guardarSesion(sesion);
+
+    return mapPaseador(respuesta.paseador);
+  }
+
   // Simulamos un retraso de red de 800 milisegundos
   await new Promise((resolve) => setTimeout(resolve, 800));
-  
-  // Armamos el objeto completo del nuevo paseador
+
+  let usuarioId: string | undefined;
+  if (datos.email && datos.password) {
+    const sesion = await registrarCuentaPaseadorMock({
+      nombre: datos.nombre,
+      apellido: datos.apellido,
+      email: datos.email,
+      password: datos.password,
+      telefono,
+    });
+    usuarioId = sesion.usuario.id;
+  }
+
+  // Armamos el objeto completo del nuevo paseador.
   const nuevoPaseador: Paseador = {
-    ...datos, // Copiamos todos los datos que ingresó el usuario en el formulario
-    id: String(PASEADORES_MOCK.length + 1), // Generamos un ID secuencial básico
-    calificacion: 5.0, // Calificación inicial por defecto
-    cantidadResenas: 0, // Aún no tiene reseñas
-    resenas: [], // Lista de reseñas vacía
-    // Le asignamos algunos turnos disponibles por defecto para que pueda empezar a trabajar
-    turnosDisponibles: [
-      { id: `t1_${PASEADORES_MOCK.length + 1}`, dia: 'Lunes', horario: '09:00 - 11:00', disponible: true },
-      { id: `t2_${PASEADORES_MOCK.length + 1}`, dia: 'Miércoles', horario: '15:00 - 17:00', disponible: true },
-      { id: `t3_${PASEADORES_MOCK.length + 1}`, dia: 'Viernes', horario: '10:00 - 12:00', disponible: true },
-    ],
+    ...datos,
+    id: generarIdPaseador(),
+    usuarioId,
+    telefono,
+    calificacion: 0,
+    cantidadResenas: 0,
+    resenas: [],
+    // El flujo objetivo no incluye reservas: el nuevo perfil no crea turnos.
+    turnosDisponibles: [],
   };
-  
+
   // Guardamos el nuevo paseador en nuestro arreglo de datos de prueba
   PASEADORES_MOCK.push(nuevoPaseador);
-  
-  // Devolvemos el paseador creado exitosamente
-  return nuevoPaseador;
+
+  // Devolvemos una copia para no exponer el objeto interno.
+  return copiarPaseador(nuevoPaseador);
 }
+
+// Agrega una reseña al mock y recalcula el promedio del paseador.
+export function agregarResenaMock(
+  paseadorId: string,
+  datos: { mascota: string; texto: string; calificacion: number },
+  autor: string
+): Resena {
+  const paseador = PASEADORES_MOCK.find((p) => p.id === paseadorId);
+  if (!paseador) {
+    throw new Error('Paseador no encontrado');
+  }
+
+  const resena: Resena = {
+    id: `r-${Date.now()}-${paseador.resenas.length + 1}`,
+    autor,
+    mascota: datos.mascota,
+    texto: datos.texto,
+    calificacion: datos.calificacion,
+    fecha: new Date().toISOString().slice(0, 10),
+  };
+
+  paseador.resenas = [resena, ...paseador.resenas];
+  paseador.cantidadResenas = paseador.resenas.length;
+  const promedio =
+    paseador.resenas.reduce((total, item) => total + item.calificacion, 0) /
+    paseador.resenas.length;
+  paseador.calificacion = Number(promedio.toFixed(1));
+
+  return resena;
+}
+
+// Reseñas del perfil que pertenece al usuario autenticado (modo mock).
+export function getMisResenasMock(usuarioId: string): Resena[] {
+  const paseador = PASEADORES_MOCK.find((p) => p.usuarioId === usuarioId);
+  if (!paseador) return [];
+
+  return paseador.resenas.map((resena) => ({ ...resena }));
+}
+
+

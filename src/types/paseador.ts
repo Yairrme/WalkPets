@@ -1,21 +1,34 @@
+import { Ciudad } from '../constants/ciudades';
+
 // Representa la estructura completa de un Paseador en la aplicación.
 // Define todos los datos que debe tener un perfil de paseador.
 export type Paseador = {
   id: string; // Identificador único del paseador
+  usuarioId?: string; // Usuario dueño del perfil, cuando existe autenticación
   nombre: string; // Nombre de pila
   apellido: string; // Apellido
   foto: string; // URL de la foto de perfil (puede estar vacía)
   barrio: string; // Barrio donde trabaja principalmente
-  ciudad: string; // Ciudad donde opera
+  ciudad: Ciudad; // Ciudad donde opera (Cipolletti o Neuquén)
   descripcion: string; // Breve biografía o presentación del paseador
   precioHora: number; // Tarifa que cobra por cada hora de paseo
   calificacion: number; // Promedio de calificación (ej. 4.8)
   cantidadResenas: number; // Cantidad total de reseñas recibidas
-  telefono: string; // Número de contacto
+  telefono: string; // Número de contacto (se normaliza antes de llamar o usar WhatsApp)
   disponible: boolean; // Indica si actualmente acepta nuevos perros
   razasAceptadas: string[]; // Lista de preferencias (ej. "Razas pequeñas", "Todas las razas")
   resenas: Resena[]; // Lista de comentarios dejados por otros dueños
-  turnosDisponibles: Turno[]; // Horarios en los que tiene disponibilidad para pasear
+  turnosDisponibles: Turno[]; // LEGADO: horarios de reserva, fuera del flujo objetivo
+  esPropietario?: boolean; // true cuando el usuario autenticado es dueño del perfil
+};
+
+// Datos que envía el formulario de registro de paseadores.
+export type NuevoPaseadorInput = Omit<
+  Paseador,
+  'id' | 'calificacion' | 'cantidadResenas' | 'resenas' | 'turnosDisponibles'
+> & {
+  email?: string; // Requerido en modo API para crear la cuenta
+  password?: string; // Requerido en modo API; nunca se persiste en el frontend
 };
 
 // Representa un comentario o calificación que dejó un cliente.
@@ -28,7 +41,30 @@ export type Resena = {
   fecha: string; // Fecha en la que se escribió la reseña (formato YYYY-MM-DD)
 };
 
-// Representa un bloque de horario que el paseador tiene libre.
+// Datos para publicar una reseña desde la app.
+export type NuevaResenaInput = {
+  mascota: string;
+  texto: string;
+  calificacion: number;
+};
+
+export type Rol = 'cliente' | 'paseador';
+
+export type Usuario = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono?: string;
+  rol: Rol;
+};
+
+export type Sesion = {
+  token: string;
+  usuario: Usuario;
+};
+
+// LEGADO: bloques de horario del flujo de reservas, fuera del objetivo.
 export type Turno = {
   id: string; // Identificador único del turno
   dia: string; // Día de la semana (ej. "Lunes", "Martes")
@@ -36,7 +72,7 @@ export type Turno = {
   disponible: boolean; // Si el turno ya fue reservado (false) o sigue libre (true)
 };
 
-// Representa los datos necesarios para solicitar o crear una nueva reserva.
+// LEGADO: datos necesarios para solicitar o crear una nueva reserva.
 export type ReservaTurno = {
   paseadorId: string; // ID del paseador elegido
   turnoId: string; // ID del turno horario elegido

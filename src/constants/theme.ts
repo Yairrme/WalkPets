@@ -1,7 +1,9 @@
 // WalkPets — Tema centralizado
 export const colors = {
-  // Primarios (paleta WalkPets)
+  // Primarios (paleta WalkPets, tomada del logo)
   verde: '#3D5A1E',
+  verdeOscuro: '#1F2E1A',
+  verdeOliva: '#565A21',
   verdeClaro: '#5C7A2A',
   verdeMenta: '#A8C07A',
   verdePastel: '#E8F0D8',
@@ -26,6 +28,9 @@ export const colors = {
   exito: '#3D5A1E',
   exitoClaro: '#E8F0D8',
   advertencia: '#F6AD55',
+
+  // Marca externa
+  whatsapp: '#25D366',
 };
 
 export const fonts = {
@@ -66,5 +71,12 @@ export const shadows = {
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+  },
+  elevada: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 8,
   },
 };
