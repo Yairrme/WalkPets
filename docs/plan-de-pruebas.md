@@ -16,35 +16,33 @@
 
 ### 1.1 Última ejecución verificada
 
-| Paquete | Comando | Resultado |
-|---|---|---|
-| Frontend | `npm run typecheck` | Sin errores |
-| Frontend | `npm run lint` | Sin errores ni warnings |
-| Frontend | `npm test` | 12 suites, 88 tests en verde |
-| Backend | `npm run typecheck` | Sin errores |
-| Backend | `npm test` | 3 suites, 39 tests en verde |
-| Backend | `npm run build` | Sin errores |
+| Paquete  | Comando             | Resultado                    |
+| -------- | ------------------- | ---------------------------- |
+| Frontend | `npm run typecheck` | Sin errores                  |
+| Frontend | `npm run lint`      | Sin errores ni warnings      |
+| Frontend | `npm test`          | 12 suites, 88 tests en verde |
+| Backend  | `npm run typecheck` | Sin errores                  |
+| Backend  | `npm test`          | 3 suites, 39 tests en verde  |
+| Backend  | `npm run build`     | Sin errores                  |
 
 ### 1.2 Smoke test de integración ejecutado
 
 Además de la suite automatizada, se levantó la API compilada (`backend/dist/main.js`) contra una instancia efímera de MongoDB y se ejecutaron llamadas HTTP reales:
 
-| Caso | Resultado |
-|---|---|
-| `GET /api/health` | `200`, base `conectado` |
-| Registro de paseador | `201`, token, teléfono `+5492994123456`, sin `passwordHash` |
-| `GET /api/paseadores?ciudad=Neuquén` | `200`, solo Neuquén |
-| Registro de cliente | `201` con token |
-| `POST /api/paseadores/:id/resenas` | `201`, autor y calificación correctos |
-| `GET /api/paseadores/:id` con token del dueño | `200`, promedio 5, 1 reseña, `esPropietario: true` |
-| `GET /api/resenas/mias` como paseador | `200`, 1 reseña |
-| `GET /api/resenas/mias` como cliente | `403` |
-| `GET /api/resenas/mias` sin token | `401` |
-| Ciudad inválida | `400` |
-| `disponible=quizas` | `400` |
-| Login válido / inválido | `200` / `401` |
-
-También se ejecutó el seed dos veces contra la misma base efímera: la segunda ejecución no duplicó datos (4 usuarios, 3 perfiles, 1 reseña).
+| Caso                                          | Resultado                                                   |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `GET /api/health`                             | `200`, base `conectado`                                     |
+| Registro de paseador                          | `201`, token, teléfono `+5492994123456`, sin `passwordHash` |
+| `GET /api/paseadores?ciudad=Neuquén`          | `200`, solo Neuquén                                         |
+| Registro de cliente                           | `201` con token                                             |
+| `POST /api/paseadores/:id/resenas`            | `201`, autor y calificación correctos                       |
+| `GET /api/paseadores/:id` con token del dueño | `200`, promedio 5, 1 reseña, `esPropietario: true`          |
+| `GET /api/resenas/mias` como paseador         | `200`, 1 reseña                                             |
+| `GET /api/resenas/mias` como cliente          | `403`                                                       |
+| `GET /api/resenas/mias` sin token             | `401`                                                       |
+| Ciudad inválida                               | `400`                                                       |
+| `disponible=quizas`                           | `400`                                                       |
+| Login válido / inválido                       | `200` / `401`                                               |
 
 ---
 
@@ -82,23 +80,23 @@ También se ejecutó el seed dos veces contra la misma base efímera: la segunda
 
 ### Frontend
 
-| Necesidad | Herramienta | Versión |
-|---|---|---|
-| Preset | `jest-expo` | 54.0.18 |
-| Runner | `jest` | 29.7.0 |
-| Tipos | `@types/jest` | 29.5.14 |
-| Componentes | `@testing-library/react-native` | 13.3.3 |
-| Renderer | `react-test-renderer` | 19.1.0 |
-| Lint | `eslint` + `eslint-config-expo` | 9.39.5 / 9.2.0 |
+| Necesidad   | Herramienta                     | Versión        |
+| ----------- | ------------------------------- | -------------- |
+| Preset      | `jest-expo`                     | 54.0.18        |
+| Runner      | `jest`                          | 29.7.0         |
+| Tipos       | `@types/jest`                   | 29.5.14        |
+| Componentes | `@testing-library/react-native` | 13.3.3         |
+| Renderer    | `react-test-renderer`           | 19.1.0         |
+| Lint        | `eslint` + `eslint-config-expo` | 9.39.5 / 9.2.0 |
 
 ### Backend
 
-| Necesidad | Herramienta | Versión |
-|---|---|---|
-| Runner y transform | `jest` + `ts-jest` | 29.7.0 / 29.4.15 |
-| Módulos Nest | `@nestjs/testing` | 11.2.8 |
-| HTTP | `supertest` | 7.3.1 |
-| MongoDB efímera | `mongodb-memory-server` | 11.3.0 |
+| Necesidad          | Herramienta             | Versión          |
+| ------------------ | ----------------------- | ---------------- |
+| Runner y transform | `jest` + `ts-jest`      | 29.7.0 / 29.4.15 |
+| Módulos Nest       | `@nestjs/testing`       | 11.2.8           |
+| HTTP               | `supertest`             | 7.3.1            |
+| MongoDB efímera    | `mongodb-memory-server` | 11.3.0           |
 
 ---
 
@@ -110,11 +108,16 @@ También se ejecutó el seed dos veces contra la misma base efímera: la segunda
 
 ```js
 module.exports = {
-  preset: 'jest-expo',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
-  testMatch: ['<rootDir>/__tests__/**/*.test.ts?(x)'],
-  testPathIgnorePatterns: ['/node_modules/', '/.expo/', '/dist/'],
-  collectCoverageFrom: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}', '!**/*.d.ts'],
+  preset: "jest-expo",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  testMatch: ["<rootDir>/__tests__/**/*.test.ts?(x)"],
+  testPathIgnorePatterns: ["/node_modules/", "/.expo/", "/dist/"],
+  collectCoverageFrom: [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "src/**/*.{ts,tsx}",
+    "!**/*.d.ts",
+  ],
 };
 ```
 
@@ -177,132 +180,132 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 
 ### 7.1 Utilidades de teléfono (16 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| `+54 299 4123456` | `5492994123456` |
-| `2994123456` | Agrega prefijo `549` |
-| `+54 9 299 4123456` | `5492994123456` |
-| `0299 4123456` | `5492994123456` |
-| `299 15 4123456` | Quita el `15` |
-| Guiones y paréntesis | Se normalizan |
-| Vacío o corto | `null` |
-| `formatearTelefono` | `+54 9 299 4123-456` |
-| `construirUrlTel` | `tel:+5492994123456` |
+| Caso                   | Resultado esperado                                |
+| ---------------------- | ------------------------------------------------- |
+| `+54 299 4123456`      | `5492994123456`                                   |
+| `2994123456`           | Agrega prefijo `549`                              |
+| `+54 9 299 4123456`    | `5492994123456`                                   |
+| `0299 4123456`         | `5492994123456`                                   |
+| `299 15 4123456`       | Quita el `15`                                     |
+| Guiones y paréntesis   | Se normalizan                                     |
+| Vacío o corto          | `null`                                            |
+| `formatearTelefono`    | `+54 9 299 4123-456`                              |
+| `construirUrlTel`      | `tel:+5492994123456`                              |
 | `construirUrlWhatsApp` | `https://wa.me/5492994123456?text=...` codificado |
-| Mensaje prellenado | Menciona WalkPets |
-| Número inválido | `null` en las tres funciones |
+| Mensaje prellenado     | Menciona WalkPets                                 |
+| Número inválido        | `null` en las tres funciones                      |
 
 ### 7.2 Servicio mock de paseadores (9 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| Listado | 4 paseadores |
-| Ciudades | Hay Cipolletti y Neuquén |
-| Teléfonos | Todos válidos |
-| Copias | Mutar el resultado no altera el mock |
-| `getPaseadorById` existente | Devuelve el paseador |
-| `getPaseadorById` inexistente | `null` |
-| Registro válido | Normaliza teléfono, genera ID y aparece en el listado |
-| Teléfono inválido | Error |
-| Ciudad inválida | Error |
+| Caso                          | Resultado esperado                                    |
+| ----------------------------- | ----------------------------------------------------- |
+| Listado                       | 4 paseadores                                          |
+| Ciudades                      | Hay Cipolletti y Neuquén                              |
+| Teléfonos                     | Todos válidos                                         |
+| Copias                        | Mutar el resultado no altera el mock                  |
+| `getPaseadorById` existente   | Devuelve el paseador                                  |
+| `getPaseadorById` inexistente | `null`                                                |
+| Registro válido               | Normaliza teléfono, genera ID y aparece en el listado |
+| Teléfono inválido             | Error                                                 |
+| Ciudad inválida               | Error                                                 |
 
 ### 7.3 Servicio de reseñas en modo mock (6 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| Sin sesión | Error |
-| Sesión de paseador | Error “Solo los clientes…” |
-| Cliente | Publica, actualiza promedio y cantidad |
-| Paseador autenticado | Devuelve sus reseñas |
-| Cliente en `/resenas/mias` | Error |
-| Sin sesión en `/resenas/mias` | Error |
+| Caso                          | Resultado esperado                     |
+| ----------------------------- | -------------------------------------- |
+| Sin sesión                    | Error                                  |
+| Sesión de paseador            | Error “Solo los clientes…”             |
+| Cliente                       | Publica, actualiza promedio y cantidad |
+| Paseador autenticado          | Devuelve sus reseñas                   |
+| Cliente en `/resenas/mias`    | Error                                  |
+| Sin sesión en `/resenas/mias` | Error                                  |
 
 ### 7.4 Integración con la API (6 tests, `fetch` simulado)
 
-| Caso | Resultado esperado |
-|---|---|
-| Listado | Mapea `fotoUrl`, `calificacionPromedio`, `resenas` |
-| Perfil | Envía `Authorization: Bearer` y mapea `autorNombre` y fecha |
-| Perfil 404 | Devuelve `null` |
-| Alta de reseña | `POST` al endpoint correcto con token |
-| Error 400 | `ApiError` con `detalles` |
-| Fallo de red | “No se pudo conectar con el servidor.” |
+| Caso           | Resultado esperado                                          |
+| -------------- | ----------------------------------------------------------- |
+| Listado        | Mapea `fotoUrl`, `calificacionPromedio`, `resenas`          |
+| Perfil         | Envía `Authorization: Bearer` y mapea `autorNombre` y fecha |
+| Perfil 404     | Devuelve `null`                                             |
+| Alta de reseña | `POST` al endpoint correcto con token                       |
+| Error 400      | `ApiError` con `detalles`                                   |
+| Fallo de red   | “No se pudo conectar con el servidor.”                      |
 
 ### 7.5 Componentes (13 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| `PaseadorCard` | Muestra nombre, precio, rating, reseñas, barrio, ciudad y disponibilidad |
-| `PaseadorCard` press | Ejecuta `onPress` |
-| `PaseadorCard` sin foto | Usa imagen de respaldo |
-| `StarRating` | 5 estrellas y valor con un decimal |
-| `StarRating` sin número | Oculta el valor |
-| `StarRating` entero | Muestra un decimal |
-| `EmptyState` vacío | Mensaje por defecto |
-| `EmptyState` error | Mensaje y reintento |
-| `EmptyState` mensaje | Permite sobrescribir el mensaje |
-| `EmptyState` título | Permite sobrescribir el título |
-| `AppButton` | Muestra la etiqueta y ejecuta `onPress` |
-| `AppButton` deshabilitado | Expone el estado y no dispara `onPress` |
-| `AppButton` accesibilidad | Permite personalizar la etiqueta |
+| Caso                      | Resultado esperado                                                       |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `PaseadorCard`            | Muestra nombre, precio, rating, reseñas, barrio, ciudad y disponibilidad |
+| `PaseadorCard` press      | Ejecuta `onPress`                                                        |
+| `PaseadorCard` sin foto   | Usa imagen de respaldo                                                   |
+| `StarRating`              | 5 estrellas y valor con un decimal                                       |
+| `StarRating` sin número   | Oculta el valor                                                          |
+| `StarRating` entero       | Muestra un decimal                                                       |
+| `EmptyState` vacío        | Mensaje por defecto                                                      |
+| `EmptyState` error        | Mensaje y reintento                                                      |
+| `EmptyState` mensaje      | Permite sobrescribir el mensaje                                          |
+| `EmptyState` título       | Permite sobrescribir el título                                           |
+| `AppButton`               | Muestra la etiqueta y ejecuta `onPress`                                  |
+| `AppButton` deshabilitado | Expone el estado y no dispara `onPress`                                  |
+| `AppButton` accesibilidad | Permite personalizar la etiqueta                                         |
 
 ### 7.6 Listado (14 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| Carga | Indicador visible |
-| Éxito | Tarjetas y contador general |
-| Filtro Cipolletti | Solo esa ciudad y encabezado correcto |
-| Filtro Neuquén | Solo esa ciudad y encabezado correcto |
-| Chip “Todas” | Vuelve a mostrar ambas |
-| Barrios | No muestra barrios de otra ciudad |
-| Cambio de ciudad | Limpia barrio inexistente |
-| Filtro por barrio | Filtra y permite limpiar |
-| Disponibles | Excluye no disponibles |
-| Ciudad + disponibilidad | Se combinan |
-| Accesibilidad | `accessibilityState.selected` en los chips |
-| Vacío | Estado vacío |
-| Error | Error y reintento |
-| Navegación | `router.push('/paseadores/1')` |
+| Caso                    | Resultado esperado                         |
+| ----------------------- | ------------------------------------------ |
+| Carga                   | Indicador visible                          |
+| Éxito                   | Tarjetas y contador general                |
+| Filtro Cipolletti       | Solo esa ciudad y encabezado correcto      |
+| Filtro Neuquén          | Solo esa ciudad y encabezado correcto      |
+| Chip “Todas”            | Vuelve a mostrar ambas                     |
+| Barrios                 | No muestra barrios de otra ciudad          |
+| Cambio de ciudad        | Limpia barrio inexistente                  |
+| Filtro por barrio       | Filtra y permite limpiar                   |
+| Disponibles             | Excluye no disponibles                     |
+| Ciudad + disponibilidad | Se combinan                                |
+| Accesibilidad           | `accessibilityState.selected` en los chips |
+| Vacío                   | Estado vacío                               |
+| Error                   | Error y reintento                          |
+| Navegación              | `router.push('/paseadores/1')`             |
 
 ### 7.7 Perfil (11 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| Carga | Indicador visible |
-| Datos | Nombre, ciudad, barrio, rating, reseñas, descripción y razas |
-| Neuquén | Ciudad correcta |
-| Contacto | Teléfono formateado y apertura de `tel:` y `wa.me` |
-| Accesibilidad | Etiquetas en ambas acciones |
-| Teléfono inválido | Oculta acciones |
-| Sin reseñas | No rompe |
-| Sin reservas | No muestra CTA ni turnos |
-| Inexistente | Estado de error |
-| Error del servicio | Estado de error |
-| Reintento | Recupera el perfil |
+| Caso               | Resultado esperado                                           |
+| ------------------ | ------------------------------------------------------------ |
+| Carga              | Indicador visible                                            |
+| Datos              | Nombre, ciudad, barrio, rating, reseñas, descripción y razas |
+| Neuquén            | Ciudad correcta                                              |
+| Contacto           | Teléfono formateado y apertura de `tel:` y `wa.me`           |
+| Accesibilidad      | Etiquetas en ambas acciones                                  |
+| Teléfono inválido  | Oculta acciones                                              |
+| Sin reseñas        | No rompe                                                     |
+| Sin reservas       | No muestra CTA ni turnos                                     |
+| Inexistente        | Estado de error                                              |
+| Error del servicio | Estado de error                                              |
+| Reintento          | Recupera el perfil                                           |
 
 ### 7.8 Registro de paseador (6 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| Obligatorios | Muestra errores de nombre, apellido, barrio, teléfono, precio y descripción |
-| Teléfono con espacios | Se trata como vacío |
-| Teléfono inválido | Error de formato |
-| Contraseña y email | Rechaza contraseña corta y email inválido |
-| Precio no numérico | Error |
-| Alta válida | Normaliza teléfono y muestra “¡Registro Exitoso!” |
+| Caso                  | Resultado esperado                                                          |
+| --------------------- | --------------------------------------------------------------------------- |
+| Obligatorios          | Muestra errores de nombre, apellido, barrio, teléfono, precio y descripción |
+| Teléfono con espacios | Se trata como vacío                                                         |
+| Teléfono inválido     | Error de formato                                                            |
+| Contraseña y email    | Rechaza contraseña corta y email inválido                                   |
+| Precio no numérico    | Error                                                                       |
+| Alta válida           | Normaliza teléfono y muestra “¡Registro Exitoso!”                           |
 
 ### 7.9 Login y registro de cliente (7 tests)
 
-| Caso | Resultado esperado |
-|---|---|
-| Campos vacíos | Pide correo y contraseña |
-| Login válido | Llama al servicio y navega al listado |
-| Credenciales incorrectas | Muestra el error del servicio |
-| Contraseña corta | Error de validación |
-| Registro válido | Normaliza teléfono y navega |
-| Teléfono inválido | Error de formato |
-| Modo mock | Botones de credenciales demo |
+| Caso                     | Resultado esperado                    |
+| ------------------------ | ------------------------------------- |
+| Campos vacíos            | Pide correo y contraseña              |
+| Login válido             | Llama al servicio y navega al listado |
+| Credenciales incorrectas | Muestra el error del servicio         |
+| Contraseña corta         | Error de validación                   |
+| Registro válido          | Normaliza teléfono y navega           |
+| Teléfono inválido        | Error de formato                      |
+| Modo mock                | Arranca vacío, sin cuentas de prueba  |
 
 ---
 
@@ -325,16 +328,16 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 
 ### 8.3 E2E de la API (30 tests)
 
-| Área | Casos |
-|---|---|
-| Health | `status: ok` y base conectada |
-| Registro | Cliente creado con token; email duplicado 409; contraseña corta 400; paseador sin teléfono 400; paseador sin perfil 400; ciudad inválida 400; rol inválido 400; paseador con perfil y teléfono normalizado 201 |
-| Login | Credenciales incorrectas 401; email inexistente 401; credenciales válidas 200 |
-| Listado | Lista completa; filtro por ciudad; ciudad inválida 400; `disponible` no booleano 400 |
-| Filtros combinados | Ciudad; `disponible=false` interpretado como booleano; ciudad + barrio; sin coincidencias `[]` |
-| Perfil | Perfil público con reseñas vacías; 404 por id inexistente; 404 por id con formato inválido |
-| Reseñas | Sin sesión 401; como paseador 403; calificación fuera de rango 400; texto corto 400; alta como cliente y promedio actualizado; paseador inexistente 404 |
-| Reseñas propias | Sin sesión 401; como cliente 403; como paseador 200 con sus reseñas |
+| Área               | Casos                                                                                                                                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health             | `status: ok` y base conectada                                                                                                                                                                                  |
+| Registro           | Cliente creado con token; email duplicado 409; contraseña corta 400; paseador sin teléfono 400; paseador sin perfil 400; ciudad inválida 400; rol inválido 400; paseador con perfil y teléfono normalizado 201 |
+| Login              | Credenciales incorrectas 401; email inexistente 401; credenciales válidas 200                                                                                                                                  |
+| Listado            | Lista completa; filtro por ciudad; ciudad inválida 400; `disponible` no booleano 400                                                                                                                           |
+| Filtros combinados | Ciudad; `disponible=false` interpretado como booleano; ciudad + barrio; sin coincidencias `[]`                                                                                                                 |
+| Perfil             | Perfil público con reseñas vacías; 404 por id inexistente; 404 por id con formato inválido                                                                                                                     |
+| Reseñas            | Sin sesión 401; como paseador 403; calificación fuera de rango 400; texto corto 400; alta como cliente y promedio actualizado; paseador inexistente 404                                                        |
+| Reseñas propias    | Sin sesión 401; como cliente 403; como paseador 200 con sus reseñas                                                                                                                                            |
 
 El E2E verifica además que `passwordHash` no se devuelve, que el teléfono del paseador se guarda como `+5492994123456` y que `calificacionPromedio`/`cantidadResenas` se actualizan tras publicar.
 
@@ -344,16 +347,16 @@ El E2E verifica además que `passwordHash` no se devuelve, que el teléfono del 
 
 Se documentan como pendientes, no como tests `skip`:
 
-| Área | Caso pendiente |
-|---|---|
-| Seguridad | Refresh token, expiración y revocación. |
-| Seguridad | Rate limiting y bloqueo por intentos. |
-| Seguridad | Verificación de email y recuperación de contraseña. |
-| Reseñas | Impedir reseñas de clientes que no contrataron al paseador. |
-| API | Paginación y búsqueda por texto. |
-| Perfil | Edición y baja de perfil. |
-| Reseñas | Edición y baja de reseñas. |
-| CI | Pipeline de verificación. |
+| Área      | Caso pendiente                                              |
+| --------- | ----------------------------------------------------------- |
+| Seguridad | Refresh token, expiración y revocación.                     |
+| Seguridad | Rate limiting y bloqueo por intentos.                       |
+| Seguridad | Verificación de email y recuperación de contraseña.         |
+| Reseñas   | Impedir reseñas de clientes que no contrataron al paseador. |
+| API       | Paginación y búsqueda por texto.                            |
+| Perfil    | Edición y baja de perfil.                                   |
+| Reseñas   | Edición y baja de reseñas.                                  |
+| CI        | Pipeline de verificación.                                   |
 
 ---
 
@@ -429,14 +432,14 @@ Checklist:
 
 ## 12. Riesgos
 
-| Riesgo | Mitigación |
-|---|---|
-| Tests acoplados a textos exactos | Usar roles, labels y fixtures estables. |
-| Timers reales lentos | `jest.useFakeTimers()` en el mock. |
-| Estado mutable entre tests | `AsyncStorage.clear()` y `jest.resetModules()`. |
-| `expo-router` en tests | Mock de `router`. |
-| Iconos nativos en Jest | Mock en `jest.setup.ts`. |
-| Driver de MongoDB y Jest | `--experimental-vm-modules`. |
-| E2E con base real | `mongodb-memory-server` efímera. |
-| Secretos en tests | Valores ficticios en `process.env`. |
-| Tests de funcionalidad inexistente | Documentarlos como pendientes. |
+| Riesgo                             | Mitigación                                      |
+| ---------------------------------- | ----------------------------------------------- |
+| Tests acoplados a textos exactos   | Usar roles, labels y fixtures estables.         |
+| Timers reales lentos               | `jest.useFakeTimers()` en el mock.              |
+| Estado mutable entre tests         | `AsyncStorage.clear()` y `jest.resetModules()`. |
+| `expo-router` en tests             | Mock de `router`.                               |
+| Iconos nativos en Jest             | Mock en `jest.setup.ts`.                        |
+| Driver de MongoDB y Jest           | `--experimental-vm-modules`.                    |
+| E2E con base real                  | `mongodb-memory-server` efímera.                |
+| Secretos en tests                  | Valores ficticios en `process.env`.             |
+| Tests de funcionalidad inexistente | Documentarlos como pendientes.                  |

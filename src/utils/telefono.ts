@@ -6,6 +6,8 @@
 // Ejemplo: +54 9 299 412-3456  ->  5492994123456
 
 const LARGO_NORMALIZADO = 13;
+// Característica de Cipolletti y Neuquén (área 299).
+const CARACTERISTICA_LOCAL = '299';
 
 export function normalizarTelefono(valor: string | null | undefined): string | null {
   if (!valor) return null;
@@ -39,6 +41,14 @@ export function normalizarTelefono(valor: string | null | undefined): string | n
     digitos = `${digitos.slice(0, 2)}${digitos.slice(4)}`;
   } else if (digitos.length === 12 && digitos.slice(3, 5) === '15') {
     digitos = `${digitos.slice(0, 3)}${digitos.slice(5)}`;
+  }
+
+  // Número local sin característica (4123456 o 15 4123456): en Cipolletti y
+  // Neuquén la característica es siempre 299, así que la completamos.
+  if (digitos.length === 9 && digitos.startsWith('15')) {
+    digitos = `${CARACTERISTICA_LOCAL}${digitos.slice(2)}`;
+  } else if (digitos.length === 7) {
+    digitos = `${CARACTERISTICA_LOCAL}${digitos}`;
   }
 
   if (digitos.length !== 10) return null;

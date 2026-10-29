@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model, Types } from 'mongoose';
+import { Ciudad } from '../constants/ciudades';
 import {
   Rol,
   Usuario,
@@ -18,7 +19,14 @@ export type UsuarioPublico = {
   email: string;
   telefono?: string | null;
   rol: Rol;
+  ciudad: Ciudad | null;
+  barrio: string;
+  mascotas: string;
 };
+
+export type CambiosUsuario = Partial<
+  Pick<UsuarioPublico, 'nombre' | 'apellido' | 'telefono' | 'ciudad' | 'barrio' | 'mascotas'>
+>;
 
 export type CrearUsuarioInput = {
   nombre: string;
@@ -44,7 +52,19 @@ export class UsuariosService {
       email: usuario.email,
       telefono: usuario.telefono ?? null,
       rol: usuario.rol,
+      ciudad: usuario.ciudad ?? null,
+      barrio: usuario.barrio ?? '',
+      mascotas: usuario.mascotas ?? '',
     };
+  }
+
+  // Aplica solo los campos enviados y devuelve la cuenta actualizada.
+  async actualizar(id: string, cambios: CambiosUsuario): Promise<UsuarioLean | null> {
+    if (!Types.ObjectId.isValid(id)) return null;
+    return this.modelo
+      .findByIdAndUpdate(id, { $set: cambios }, { new: true, runValidators: true })
+      .lean<UsuarioLean | null>()
+      .exec();
   }
 
   async crear(datos: CrearUsuarioInput): Promise<UsuarioLean> {
@@ -115,6 +135,9 @@ export class UsuariosService {
       email: documento.email,
       telefono: documento.telefono ?? null,
       rol: documento.rol,
+      ciudad: documento.ciudad ?? null,
+      barrio: documento.barrio ?? '',
+      mascotas: documento.mascotas ?? '',
     };
   }
 

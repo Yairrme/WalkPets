@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsEmail,
   IsIn,
   IsOptional,
   IsString,
@@ -20,7 +21,7 @@ export class RegistroDto {
   @MaxLength(60)
   apellido!: string;
 
-  @IsString()
+  @IsEmail({}, { message: 'Ingresá un correo electrónico válido.' })
   @MaxLength(120)
   email!: string;
 

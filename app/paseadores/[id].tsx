@@ -1,9 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -12,13 +11,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Aparecer } from '../../components/Aparecer';
+import { AvatarPaseador } from '../../components/AvatarPaseador';
 import { EmptyState } from '../../components/EmptyState';
 import { StarRating } from '../../components/StarRating';
 import { colors, fonts, radius, shadows, spacing } from '../../src/constants/theme';
 import { useSesion } from '../../src/context/SesionContext';
-import { getPaseadorById } from '../../src/services/paseadores.service';
+import { usePerfilPaseador } from '../../src/hooks/usePerfilPaseador';
 import { crearResena } from '../../src/services/resenas.service';
-import { Paseador } from '../../src/types/paseador';
+import { Red, urlDeRed } from '../../src/utils/redes';
 import {
   construirMensajeWhatsApp,
   construirUrlTel,
@@ -28,12 +29,17 @@ import {
 
 const CALIFICACIONES = [1, 2, 3, 4, 5];
 
+const REDES_VISIBLES: { red: Red; etiqueta: string }[] = [
+  { red: 'instagram', etiqueta: 'Instagram' },
+  { red: 'facebook', etiqueta: 'Facebook' },
+  { red: 'tiktok', etiqueta: 'TikTok' },
+  { red: 'web', etiqueta: 'Sitio web' },
+];
+
 export default function DetallePaseador() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sesion } = useSesion();
-  const [paseador, setPaseador] = useState<Paseador | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(false);
+  const { paseador, estado, cargar, refrescar } = usePerfilPaseador(id);
 
   const [mascota, setMascota] = useState('');
   const [textoResena, setTextoResena] = useState('');
@@ -42,32 +48,9 @@ export default function DetallePaseador() {
   const [errorResena, setErrorResena] = useState<string | null>(null);
   const [exitoResena, setExitoResena] = useState(false);
 
-  const puedeResenar = sesion?.usuario.rol === 'cliente' && !paseador?.esPropietario;
-
-  const cargar = useCallback(() => {
-    if (!id) {
-      setCargando(false);
-      setError(true);
-      return;
-    }
-
-    setCargando(true);
-    setError(false);
-    getPaseadorById(id)
-      .then((data) => {
-        setPaseador(data);
-        setError(data === null);
-        setCargando(false);
-      })
-      .catch(() => {
-        setError(true);
-        setCargando(false);
-      });
-  }, [id]);
-
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
+  // Tras publicar, el formulario se oculta: cada cliente reseña una sola vez.
+  const puedeResenar =
+    sesion?.usuario.rol === 'cliente' && !paseador?.esPropietario && !exitoResena;
 
   const enviarResena = async () => {
     if (!id) return;
@@ -95,7 +78,7 @@ export default function DetallePaseador() {
       setTextoResena('');
       setCalificacion(5);
       setExitoResena(true);
-      cargar();
+      refrescar();
     } catch (e) {
       setErrorResena(
         e instanceof Error ? e.message : 'No se pudo publicar la reseña.'
@@ -105,7 +88,7 @@ export default function DetallePaseador() {
     }
   };
 
-  if (cargando) {
+  if (estado === 'cargando') {
     return (
       <View style={styles.centrado}>
         <ActivityIndicator size="large" color={colors.verde} />
@@ -114,8 +97,24 @@ export default function DetallePaseador() {
     );
   }
 
-  if (error || !paseador) {
-    return <EmptyState tipo="error" onReintentar={cargar} />;
+  if (estado === 'no-encontrado') {
+    return (
+      <EmptyState
+        tipo="vacio"
+        titulo="No encontramos este paseador"
+        mensaje="Puede que haya dado de baja su perfil. Volvé al listado para ver otros paseadores."
+      />
+    );
+  }
+
+  if (estado === 'error' || !paseador) {
+    return (
+      <EmptyState
+        tipo="error"
+        mensaje="No pudimos cargar el perfil. Revisá tu conexión."
+        onReintentar={cargar}
+      />
+    );
   }
 
   const telefonoFormateado = formatearTelefono(paseador.telefono);
@@ -125,6 +124,10 @@ export default function DetallePaseador() {
     construirMensajeWhatsApp(paseador.nombre)
   );
   const nombreCompleto = `${paseador.nombre} ${paseador.apellido}`;
+  const redesConEnlace = REDES_VISIBLES.flatMap(({ red, etiqueta }) => {
+    const url = urlDeRed(red, paseador.redes[red]);
+    return url ? [{ red, etiqueta, url }] : [];
+  });
 
   const abrirEnlace = async (url: string | null) => {
     if (!url) return;
@@ -144,8 +147,16 @@ export default function DetallePaseador() {
       keyboardShouldPersistTaps="handled"
     >
       {/* Foto y encabezado */}
+      <Aparecer retraso={0}>
       <View style={styles.header}>
-        <Image source={{ uri: paseador.foto }} style={styles.foto} />
+        <AvatarPaseador
+          foto={paseador.foto}
+          nombre={paseador.nombre}
+          apellido={paseador.apellido}
+          tamano={120}
+          relleno
+          style={styles.foto}
+        />
         <View style={styles.headerInfo}>
           <Text style={styles.nombre}>{nombreCompleto}</Text>
           <Text style={styles.barrio}>
@@ -159,8 +170,10 @@ export default function DetallePaseador() {
           </View>
         </View>
       </View>
+      </Aparecer>
 
       {/* Precio y disponibilidad */}
+      <Aparecer retraso={70}>
       <View style={styles.precioRow}>
         <View>
           <Text style={styles.precio}>
@@ -186,8 +199,10 @@ export default function DetallePaseador() {
           </Text>
         </View>
       </View>
+      </Aparecer>
 
       {/* Contacto directo: teléfono y WhatsApp */}
+      <Aparecer retraso={140}>
       <View style={styles.seccion}>
         <Text style={styles.seccionTitulo}>Contacto</Text>
         {telefonoFormateado ? (
@@ -223,14 +238,18 @@ export default function DetallePaseador() {
           </Text>
         )}
       </View>
+      </Aparecer>
 
       {/* Descripción */}
+      <Aparecer retraso={210}>
       <View style={styles.seccion}>
         <Text style={styles.seccionTitulo}>Sobre mí</Text>
         <Text style={styles.descripcion}>{paseador.descripcion}</Text>
       </View>
+      </Aparecer>
 
       {/* Razas */}
+      <Aparecer retraso={280}>
       <View style={styles.seccion}>
         <Text style={styles.seccionTitulo}>Razas aceptadas</Text>
         <View style={styles.razasRow}>
@@ -241,8 +260,51 @@ export default function DetallePaseador() {
           ))}
         </View>
       </View>
+      </Aparecer>
+
+      {/* Permisos y certificaciones (declarados, no verificados) */}
+      {paseador.certificaciones.length > 0 && (
+        <Aparecer retraso={320}>
+          <View style={styles.seccion}>
+            <Text style={styles.seccionTitulo}>Permisos y certificaciones</Text>
+            <View style={styles.razasRow}>
+              {paseador.certificaciones.map((certificacion) => (
+                <View key={certificacion} style={styles.certChip}>
+                  <Text style={styles.certTexto}>✓ {certificacion}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.certAviso}>
+              Declarado por el paseador. Podés pedirle los comprobantes al contactarlo.
+            </Text>
+          </View>
+        </Aparecer>
+      )}
+
+      {/* Redes sociales */}
+      {redesConEnlace.length > 0 && (
+        <Aparecer retraso={340}>
+          <View style={styles.seccion}>
+            <Text style={styles.seccionTitulo}>Redes</Text>
+            <View style={styles.razasRow}>
+              {redesConEnlace.map(({ red, etiqueta, url }) => (
+                <TouchableOpacity
+                  key={red}
+                  style={styles.redBtn}
+                  onPress={() => abrirEnlace(url)}
+                  accessibilityRole="link"
+                  accessibilityLabel={`Abrir ${etiqueta} de ${nombreCompleto}`}
+                >
+                  <Text style={styles.redTexto}>{etiqueta} ↗</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Aparecer>
+      )}
 
       {/* Reseñas */}
+      <Aparecer retraso={350}>
       <View style={styles.seccion}>
         <Text style={styles.seccionTitulo}>
           Reseñas ({paseador.resenas.length})
@@ -267,17 +329,18 @@ export default function DetallePaseador() {
           ))
         )}
       </View>
+      </Aparecer>
+
+      {exitoResena && (
+        <Aparecer style={[styles.exitoCaja, styles.exitoSuelto]}>
+          <Text style={styles.exitoTexto}>¡Gracias! Tu reseña se publicó.</Text>
+        </Aparecer>
+      )}
 
       {/* Publicar reseña: solo clientes autenticados */}
       {puedeResenar && (
         <View style={styles.seccion}>
           <Text style={styles.seccionTitulo}>Dejá tu reseña</Text>
-
-          {exitoResena && (
-            <View style={styles.exitoCaja}>
-              <Text style={styles.exitoTexto}>¡Gracias! Tu reseña se publicó.</Text>
-            </View>
-          )}
 
           {errorResena && (
             <View style={styles.errorCaja}>
@@ -391,13 +454,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.grisClaro,
     ...shadows.card,
   },
-  foto: { width: 120, height: 150, resizeMode: 'cover', backgroundColor: colors.grisClaro },
+  foto: { width: 120, height: 150 },
+  exitoSuelto: { marginBottom: spacing.md },
   headerInfo: { flex: 1, padding: spacing.md, gap: spacing.xs, justifyContent: 'center' },
-  nombre: { fontSize: fonts.sizes.xl, fontWeight: '800', color: colors.negro },
+  nombre: { fontSize: fonts.sizes.xl, fontWeight: fonts.pesos.semi, letterSpacing: fonts.tracking.subtitulo, color: colors.negro },
   barrio: { fontSize: fonts.sizes.sm, color: colors.grisOscuro },
   ratingRow: {
     flexDirection: 'row',
@@ -412,12 +474,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.blanco,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
     ...shadows.card,
   },
-  precio: { fontSize: fonts.sizes.xl, fontWeight: '800', color: colors.verde },
+  precio: { fontSize: fonts.sizes.xl, fontWeight: fonts.pesos.semi, letterSpacing: fonts.tracking.subtitulo, color: colors.verde },
   precioSufijo: { fontSize: fonts.sizes.sm, fontWeight: '400', color: colors.grisOscuro },
   badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.full },
   disponible: { backgroundColor: colors.verdePastel },
@@ -430,13 +492,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.grisClaro,
     ...shadows.card,
   },
   seccionTitulo: {
     fontSize: fonts.sizes.md + 1,
-    fontWeight: '800',
+    fontWeight: fonts.pesos.semi,
+    letterSpacing: fonts.tracking.subtitulo,
     color: colors.negro,
     marginBottom: spacing.sm,
   },
@@ -456,7 +517,7 @@ const styles = StyleSheet.create({
     minWidth: 130,
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -477,6 +538,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   razaTexto: { fontSize: fonts.sizes.sm, color: colors.verde, fontWeight: '600' },
+  certChip: {
+    paddingHorizontal: spacing.md - 2,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.verdeMenta,
+    backgroundColor: colors.blanco,
+  },
+  certTexto: { fontSize: fonts.sizes.sm, color: colors.verdeOscuro, fontWeight: fonts.pesos.medio },
+  certAviso: { marginTop: spacing.sm, fontSize: fonts.sizes.xs + 1, color: colors.grisOscuro },
+  redBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.verdeOscuro,
+  },
+  redTexto: { fontSize: fonts.sizes.sm, color: colors.blanco, fontWeight: fonts.pesos.semi },
   sinResenas: {
     fontSize: fonts.sizes.sm,
     color: colors.grisOscuro,
@@ -484,7 +562,7 @@ const styles = StyleSheet.create({
   },
   resenaCard: {
     backgroundColor: colors.crema,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.sm,
     gap: 4,
@@ -506,7 +584,7 @@ const styles = StyleSheet.create({
   estrellaActiva: { color: colors.naranja },
   input: {
     backgroundColor: colors.grisClaro,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: fonts.sizes.md,
@@ -516,7 +594,7 @@ const styles = StyleSheet.create({
   inputMultilinea: { minHeight: 90, textAlignVertical: 'top' },
   enviarBtn: {
     backgroundColor: colors.verde,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     paddingVertical: spacing.md,
     alignItems: 'center',
     marginTop: spacing.sm,
@@ -525,7 +603,7 @@ const styles = StyleSheet.create({
   enviarTexto: { color: colors.blanco, fontWeight: '700', fontSize: fonts.sizes.sm },
   exitoCaja: {
     backgroundColor: colors.exitoClaro,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -534,7 +612,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorClaro,
     borderColor: colors.error,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -546,7 +624,7 @@ const styles = StyleSheet.create({
   },
   loginBtn: {
     backgroundColor: colors.verde,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     paddingVertical: spacing.sm,
     alignItems: 'center',
   },

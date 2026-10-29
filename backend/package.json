@@ -10,7 +10,6 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "seed": "ts-node -r tsconfig-paths/register src/seed/seed.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --runInBand",

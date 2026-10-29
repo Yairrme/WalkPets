@@ -38,30 +38,32 @@ npm test               # node --experimental-vm-modules jest --runInBand
 npm run test:coverage
 npm run build          # nest build
 npm run verify         # typecheck + test + build
-npm run seed           # datos demo; requiere SEED_PASSWORD
 ```
 
-- There is no CI config. Frontend: 12 suites / 88 tests. Backend: 3 suites / 39 tests.
+- There is no CI config. Frontend: 14 suites / 107 tests. Backend: 4 suites / 71 tests.
 - Frontend `npm run lint` passes with no warnings.
 - Windows PowerShell may block `npm.ps1`; use `npm.cmd` / `npx.cmd`.
 - Never run `scripts/reset-project.js`: it deletes or moves `src/` and `scripts/`, and is not exposed in `package.json`.
 
 ## Architecture
-- Routes: `/`, `/login`, `/paseadores`, `/paseadores/[id]`, `/paseadores/registro`, `/mis-resenas`. Stack is configured in `app/_layout.tsx`, wrapped in `SesionProvider`.
-- Data source switch: `EXPO_PUBLIC_DATA_SOURCE=mock|api` plus `EXPO_PUBLIC_API_URL`. Mock is the default and the mode used by screen tests.
-- Services: `src/services/paseadores.service.ts` (mock + API facade), `auth.service.ts`, `resenas.service.ts`, `sesion.service.ts`, `api/client.ts` (fetch + timeout + `ApiError`). Screens never call `fetch` directly.
+- Routes: `/`, `/login`, `/paseadores`, `/paseadores/[id]`, `/paseadores/registro`, `/mi-perfil` (client account / walker panel), `/mis-resenas`. Stack is configured in `app/_layout.tsx`, wrapped in `SesionProvider`.
+- Data source switch: `EXPO_PUBLIC_DATA_SOURCE=mock|api` plus `EXPO_PUBLIC_API_URL`. `api` is the default and the real app; if `EXPO_PUBLIC_API_URL` is missing, requests fail with a clear error (no silent fallback). `mock` must be set explicitly, shows a visible warning bar (`components/AvisoModoPrueba.tsx`), and is in-memory and **starts empty** (no demo walkers or demo accounts; they were removed on 2026-10-28 together with the backend seed). Do not reintroduce demo data; tests load their own fixtures.
+- Layers: screens (render only) → hooks in `src/hooks/` → use cases in `src/services/*.service.ts` → repositories in `src/services/repositorios/` (`tipos.ts` interfaces, `mock.ts`, `api.ts`, chosen in `index.ts`). Mock data lives in `src/data/`, API mapping in `src/services/mappers.ts`. Screens never call `fetch` directly. Keep mock and API repositories enforcing the same rules.
 - Session is stored in AsyncStorage (`walkpets.sesion.v1`) and exposed through `src/context/SesionContext.tsx`.
 - Shared types: `src/types/paseador.ts`. Theme tokens: `src/constants/theme.ts`. Cities: `src/constants/ciudades.ts`. Phone helpers: `src/utils/telefono.ts`.
-- Backend endpoints (prefix `/api`): `GET /health`, `POST /auth/registro`, `POST /auth/login`, `GET /paseadores` (filters `ciudad`, `barrio`, `disponible`), `GET /paseadores/:id`, `POST /paseadores/:id/resenas`, `GET /resenas/mias`. Swagger at `/api/docs`.
+- Backend endpoints (prefix `/api`): `GET /health`, `POST /auth/registro`, `POST /auth/login`, `GET /paseadores` (filters `ciudad`, `barrio`, `disponible`), `GET|PATCH /paseadores/mio` (walker panel, role `paseador`; declared before `:id`), `GET /paseadores/:id`, `POST /paseadores/:id/resenas`, `GET /resenas/mias`, `GET|PATCH /cuenta` (own account; email, role and password are not editable). Swagger at `/api/docs`.
 - Tests live in `__tests__/` (frontend) and `backend/test/` (backend). Never put tests inside `app/`: every file there becomes a route. Config: `jest.config.js`, `jest.setup.ts`, `eslint.config.js`, `backend/package.json#jest`.
 - UI copy is Spanish (Rioplatense). Keep it that way.
 
 ## Product constraints
 - Current flow: search walkers → filter by city/barrio/availability → view profile and reviews → contact by **phone or WhatsApp**. Do not add booking/turnos features.
 - Cities are **exclusively Cipolletti and Neuquén**, validated in the frontend, DTOs and schemas. Do not reintroduce Cipolletti-only assumptions. Barrio filters are scoped by city.
-- Phone is required for walkers/caregivers and optional for clients. Normalize to `549` + area code + number; display `+54 9 299 4123-456`; links `tel:+549...` and `https://wa.me/549...?text=...`.
-- Reviews: only authenticated `cliente`; a walker cannot review their own profile; the server recalculates the average. Walkers can read their own reviews at `/mis-resenas`.
-- Legacy booking files remain but are **not** in the active UI: `app/paseadores/reserva.tsx`, `src/hooks/useReservaForm.ts`, `ReservaTurno`, `Turno`, `turnosDisponibles`. Remove only when explicitly requested. Do not link to `/paseadores/reserva` or assert booking as target behavior.
+- Phone is required for walkers/caregivers and optional for clients. Local numbers without area code (`4123456`, `15 4123456`) get area code `299` (Cipolletti and Neuquén). Normalize to `549` + area code + number; display `+54 9 299 4123-456`; links `tel:+549...` and `https://wa.me/549...?text=...`.
+- Reviews: only authenticated `cliente`; a walker cannot review their own profile; one review per client per walker (409, unique index `paseador + autor`); the server recalculates the average. Walkers can read their own reviews at `/mis-resenas`.
+- The legacy booking flow (`/paseadores/reserva`, `useReservaForm`, `Turno`, `ReservaTurno`, `turnosDisponibles`) was removed on 2026-10-28. Do not reintroduce it.
+- Walker profile photo (`foto` / `fotoUrl`) is one of: `avatar:mujer`, `avatar:hombre`, an uploaded JPEG data URI (≤ 400 KB, picked with `expo-image-picker` and resized to 400 px with `expo-image-manipulator` in `src/services/foto.service.ts`), an http(s) URL (≤ 500 chars, legacy) or empty (initials). Render it only through `components/AvatarPaseador.tsx`. The backend validates it in `common/foto-perfil.ts` and accepts JSON bodies up to 1 MB (`config/configurar-app.ts`, shared by `main.ts` and e2e tests).
+- Walkers can add social networks (`redes`: instagram/facebook/tiktok handles without "@", web as http(s) URL) and up to 8 permits/certifications (`certificaciones`). They are **self-declared and not verified**: the UI must say so. Rules live in `backend/src/common/perfil-extra.ts` and `src/utils/redes.ts`.
+- Clients can store `ciudad`, `barrio` and `mascotas` in their account; these are private (only `/cuenta`).
 - The backend must never expose `passwordHash`, emails of other users, or unnecessary private data.
 
 ## Gotchas
@@ -73,7 +75,6 @@ npm run seed           # datos demo; requiere SEED_PASSWORD
 - `EXPO_PUBLIC_API_URL` must include `/api` and no trailing slash (`apiFetch` concatenates `${API_URL}${path}`). Use `10.0.2.2` on Android emulator and the LAN IP on a physical device.
 - `@/*` is configured in `tsconfig.json`, but source files use relative imports.
 - Brand colors live in `src/constants/theme.ts` (`verdeOscuro`, `verde`, `verdeOliva`, `verdeMenta`, `verdePastel`, `whatsapp`). Use theme tokens instead of hardcoded hex/rgba.
-- Unused: `expo-av`, `expo-video` (plugin only), `src/global.css`, `use-theme.ts`, `use-color-scheme*`, and `react-native-safe-area-context`. Do not copy patterns from them.
 - `docs/` is the source of truth: `docs/especificaciones.md`, `docs/arquitectura.md`, `docs/plan-de-pruebas.md`, `docs/integracion-futura.md`.
 - Known security limitations: JWT in AsyncStorage (not `expo-secure-store`), no refresh tokens, email verification, password recovery, rate limiting, or proof that a reviewer hired the walker.
 

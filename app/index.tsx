@@ -15,6 +15,9 @@ import {
 import { WebView } from "react-native-webview";
 import { colors, fonts, radius, shadows, spacing } from "../src/constants/theme";
 import { AppButton } from "../components/AppButton";
+import { AppHeader } from "../components/AppHeader";
+import { Aparecer } from "../components/Aparecer";
+import { Flotar } from "../components/Flotar";
 import { UiverseSearchButton } from "../components/UiverseSearchButton";
 
 // ============================================================================
@@ -62,7 +65,6 @@ function extraerYoutubeId(url: string): string {
 
 export default function Inicio() {
   const [mostrarQuienes, setMostrarQuienes] = useState(false);
-  const [menuAbierto, setMenuAbierto] = useState(false);
   const [videoIniciado, setVideoIniciado] = useState(false);
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_BREAKPOINT;
@@ -103,140 +105,11 @@ export default function Inicio() {
 
   return (
     <View style={styles.pantalla}>
-      {/* =====================================================================
-          BARRA DE NAVEGACIÓN SUPERIOR
-          ===================================================================== */}
-      <View style={styles.navbar}>
-        <View style={styles.navRow}>
-          <TouchableOpacity
-            style={styles.navBrandGroup}
-            activeOpacity={0.9}
-            onPress={() => router.navigate("/")}
-            accessibilityRole="link"
-            accessibilityLabel="WalkPets, ir al inicio"
-          >
-            <View>
-              <View style={styles.navBrand}>
-                <Text style={styles.navTituloWalk}>Walk</Text>
-                <Text style={styles.navTituloPets}>Pets</Text>
-              </View>
-              <Text style={styles.navSubtitulo}>PASEADORES</Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.navBotones}>
-            {isWide && (
-              <>
-                <TouchableOpacity
-                  style={styles.navBtnQuienes}
-                  onPress={() => setMostrarQuienes(!mostrarQuienes)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel="Quiénes somos"
-                >
-                  <Text
-                    style={[
-                      styles.navBtnQuienesTxt,
-                      mostrarQuienes && { color: "rgba(255, 255, 255, 0.6)" },
-                    ]}
-                  >
-                    Quiénes somos
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.navBtnRegistro}
-                  activeOpacity={0.8}
-                  onPress={() => router.push("/paseadores/registro")}
-                  accessibilityRole="button"
-                  accessibilityLabel="Registrate como paseador"
-                >
-                  <Text style={styles.navBtnRegistroTxt}>Registrate</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <TouchableOpacity
-              style={styles.navBtnSesion}
-              activeOpacity={0.8}
-              onPress={() => router.push("/login")}
-              accessibilityRole="button"
-              accessibilityLabel="Iniciar sesión"
-            >
-              <Text style={styles.navBtnSesionTxt}>
-                {isWide ? "Iniciar sesión" : "Entrar"}
-              </Text>
-            </TouchableOpacity>
-            {!isWide && (
-              <TouchableOpacity
-                onPress={() => setMenuAbierto(!menuAbierto)}
-                style={{ marginLeft: 8, padding: 4 }}
-                accessibilityRole="button"
-                accessibilityLabel={menuAbierto ? "Cerrar menú" : "Abrir menú"}
-              >
-                <Entypo name="menu" size={32} color="white" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </View>
-
-      {/* Menú móvil desplegable */}
-      {!isWide && menuAbierto && (
-        <View style={styles.mobileMenu}>
-          {/* 1. Quiero ser paseador */}
-          <TouchableOpacity
-            style={styles.mobileMenuBtn}
-            onPress={() => {
-              setMenuAbierto(false);
-              router.push("/paseadores/registro");
-            }}
-            accessibilityRole="button"
-          >
-            <FontAwesome
-              name="paw"
-              size={15}
-              color={colors.blanco}
-              style={{ marginRight: 10 }}
-            />
-            <Text style={styles.mobileMenuBtnTxt}>Quiero ser paseador</Text>
-          </TouchableOpacity>
-          <View style={styles.mobileMenuDivider} />
-          {/* 2. Quiénes somos */}
-          <TouchableOpacity
-            style={styles.mobileMenuBtn}
-            onPress={() => {
-              setMenuAbierto(false);
-              setMostrarQuienes(!mostrarQuienes);
-            }}
-            accessibilityRole="button"
-          >
-            <Entypo
-              name="info-with-circle"
-              size={15}
-              color={colors.blanco}
-              style={{ marginRight: 10 }}
-            />
-            <Text style={styles.mobileMenuBtnTxt}>Quiénes somos</Text>
-          </TouchableOpacity>
-          <View style={styles.mobileMenuDivider} />
-          {/* 3. Regístrate */}
-          <TouchableOpacity
-            style={styles.mobileMenuBtn}
-            onPress={() => {
-              setMenuAbierto(false);
-              router.push("/paseadores/registro");
-            }}
-            accessibilityRole="button"
-          >
-            <Entypo
-              name="add-user"
-              size={15}
-              color={colors.blanco}
-              style={{ marginRight: 10 }}
-            />
-            <Text style={styles.mobileMenuBtnTxt}>Registrate</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Barra superior: sabe si hay sesión y colapsa en móvil */}
+      <AppHeader
+        onQuienesSomos={() => setMostrarQuienes((visible) => !visible)}
+        quienesActivo={mostrarQuienes}
+      />
 
       {/* Panel desplegable: Quiénes somos */}
       {mostrarQuienes && (
@@ -329,20 +202,25 @@ export default function Inicio() {
             /* ── MODO MÓVIL: centrado, logo arriba del texto ── */
             <View style={styles.heroMobile}>
               {/* Logo circular grande, con tamaño adaptado al ancho */}
-              <View
-                style={[
-                  styles.logoWrapper,
-                  { width: logoSize, height: logoSize },
-                ]}
-              >
-                <Image
-                  source={logo}
-                  style={styles.logoImgMobile}
-                  resizeMode="contain"
-                  accessibilityLabel="Logo de WalkPets"
-                />
-              </View>
+              <Aparecer>
+                <Flotar>
+                  <View
+                    style={[
+                      styles.logoWrapper,
+                      { width: logoSize, height: logoSize },
+                    ]}
+                  >
+                    <Image
+                      source={logo}
+                      style={styles.logoImgMobile}
+                      resizeMode="contain"
+                      accessibilityLabel="Logo de WalkPets"
+                    />
+                  </View>
+                </Flotar>
+              </Aparecer>
 
+              <Aparecer retraso={120} style={styles.heroTextosMobile}>
               {/* Bajada de marca */}
               <Text style={styles.heroEyebrow}>PASEADORES DE CONFIANZA</Text>
 
@@ -351,8 +229,10 @@ export default function Inicio() {
                 Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}
                 confianza
               </Text>
+              </Aparecer>
 
               {/* Beneficios rápidos */}
+              <Aparecer retraso={220}>
               <View style={styles.heroChips}>
                 <View style={styles.heroChip}>
                   <Text style={styles.heroChipTexto}>📍 Cipolletti y Neuquén</Text>
@@ -364,6 +244,7 @@ export default function Inicio() {
                   <Text style={styles.heroChipTexto}>⭐ Reseñas reales</Text>
                 </View>
               </View>
+              </Aparecer>
 
               {/* =====================================================================
                   SECCIÓN DE VIDEO (carga diferida: miniatura → WebView al tocar)
@@ -423,7 +304,7 @@ export default function Inicio() {
           ) : (
             /* ── MODO WIDE: columna izquierda + logo derecha ── */
             <>
-              <View style={styles.heroLeftWide}>
+              <Aparecer style={styles.heroLeftWide}>
                 <View style={styles.heroTituloRow}>
                   <Text style={styles.heroTituloWalk}>Walk </Text>
                   <Text style={styles.heroTituloPets}>Pets</Text>
@@ -456,8 +337,9 @@ export default function Inicio() {
                     accessibilityHint="Abre el formulario de registro de paseadores"
                   />
                 </View>
-              </View>
-              <View style={styles.logoWrapperWide}>
+              </Aparecer>
+              <Aparecer retraso={180} style={styles.logoWrapperWide}>
+                <Flotar>
                 <View
                   style={[
                     styles.logoRingWide,
@@ -475,7 +357,8 @@ export default function Inicio() {
                     accessibilityLabel="Logo de WalkPets"
                   />
                 </View>
-              </View>
+                </Flotar>
+              </Aparecer>
             </>
           )}
         </View>
@@ -506,111 +389,7 @@ const styles = StyleSheet.create({
   },
 
   // ─── NAVBAR ──────────────────────────────────────────────────────────
-  navbar: {
-    paddingHorizontal: spacing.md + 4,
-    paddingTop: Platform.OS === "ios" ? 54 : 38,
-    paddingBottom: spacing.sm + 4,
-    backgroundColor: colors.verdeOscuro,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 4,
-    zIndex: 10,
-  },
-  navRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  navBrandGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginTop: -6,
-  },
-  navBrand: {
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  navTituloWalk: {
-    fontSize: fonts.sizes.lg + 4,
-    fontWeight: "900",
-    color: colors.blanco,
-  },
-  navTituloPets: {
-    fontSize: fonts.sizes.lg + 4,
-    fontWeight: "900",
-    color: colors.blanco,
-    marginLeft: 2,
-  },
-  navSubtitulo: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: "rgba(255, 255, 255, 0.8)",
-    letterSpacing: 3,
-    marginTop: -2,
-  },
-  navBotones: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  navBtnQuienes: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm,
-  },
-  navBtnQuienesTxt: {
-    fontSize: fonts.sizes.sm - 1,
-    fontWeight: "600",
-    color: colors.blanco,
-  },
-  navBtnRegistro: {
-    paddingHorizontal: spacing.md - 2,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.blanco,
-  },
-  navBtnRegistroTxt: {
-    color: colors.blanco,
-    fontSize: fonts.sizes.sm - 1,
-    fontWeight: "700",
-  },
-  navBtnSesion: {
-    backgroundColor: colors.blanco,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-  },
-  navBtnSesionTxt: {
-    color: colors.verdeOscuro,
-    fontSize: fonts.sizes.sm - 1,
-    fontWeight: "700",
-  },
 
-  mobileMenu: {
-    backgroundColor: colors.verdeOscuro,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.1)",
-  },
-  mobileMenuBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.sm + 2,
-  },
-  mobileMenuBtnTxt: {
-    color: colors.blanco,
-    fontSize: fonts.sizes.md,
-    fontWeight: "600",
-  },
-  mobileMenuDivider: {
-    height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginVertical: spacing.xs,
-  },
 
   // ─── QUIÉNES SOMOS ────────────────────────────────────────────────
   quienesPanel: {
@@ -634,7 +413,8 @@ const styles = StyleSheet.create({
   },
   quienesTitulo: {
     fontSize: fonts.sizes.lg,
-    fontWeight: "800",
+    fontWeight: fonts.pesos.semi,
+    letterSpacing: fonts.tracking.titulo,
     color: colors.verde,
     marginBottom: spacing.sm,
   },
@@ -660,7 +440,7 @@ const styles = StyleSheet.create({
   },
   quienesNombre: {
     fontSize: fonts.sizes.md + 1,
-    fontWeight: "800",
+    fontWeight: fonts.pesos.semi,
     color: colors.verde,
   },
   quienesSiguenos: {
@@ -742,7 +522,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blanco,
     padding: 6,
     overflow: "hidden",
-    ...shadows.card,
   },
   logoImgMobile: {
     width: "100%",
@@ -750,6 +529,9 @@ const styles = StyleSheet.create({
   },
 
   // Logo wide
+  heroTextosMobile: {
+    alignItems: "center",
+  },
   heroLeftWide: {
     flex: 1,
     alignItems: "flex-start",
@@ -764,10 +546,6 @@ const styles = StyleSheet.create({
     borderColor: colors.verde,
     padding: 6,
     backgroundColor: colors.blanco,
-    ...shadows.card,
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
   },
   logoImgWide: {
     width: "100%",
@@ -782,19 +560,21 @@ const styles = StyleSheet.create({
   },
   heroTituloWalk: {
     fontSize: fonts.sizes.xxxl + 4,
-    fontWeight: "900",
+    fontWeight: fonts.pesos.semi,
+    letterSpacing: fonts.tracking.display,
     color: colors.negro,
     fontStyle: "italic",
   },
   heroTituloPets: {
     fontSize: fonts.sizes.xxxl + 4,
-    fontWeight: "900",
+    fontWeight: fonts.pesos.semi,
+    letterSpacing: fonts.tracking.display,
     color: colors.verdeOliva,
     fontStyle: "italic",
   },
   heroEyebrow: {
     fontSize: fonts.sizes.xs,
-    fontWeight: "800",
+    fontWeight: fonts.pesos.semi,
     color: colors.verde,
     letterSpacing: 2.4,
     marginBottom: spacing.sm,
@@ -853,7 +633,8 @@ const styles = StyleSheet.create({
   },
   videoTitulo: {
     fontSize: fonts.sizes.md,
-    fontWeight: "800",
+    fontWeight: fonts.pesos.semi,
+    letterSpacing: fonts.tracking.subtitulo,
     color: colors.verde,
     marginBottom: spacing.xs + 2,
     textAlign: "left",

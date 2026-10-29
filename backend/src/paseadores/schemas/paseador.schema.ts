@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { SchemaTypes, Types } from 'mongoose';
+import { REDES_VACIAS, RedesSociales } from '../../common/perfil-extra';
 import { CIUDADES, Ciudad } from '../../constants/ciudades';
 
 @Schema({ timestamps: true, collection: 'paseadores' })
@@ -45,6 +46,16 @@ export class Paseador {
   @Prop({ type: [String], default: ['Todas las razas'] })
   razasAceptadas!: string[];
 
+  @Prop({
+    type: { instagram: String, facebook: String, tiktok: String, web: String },
+    _id: false,
+    default: () => ({ ...REDES_VACIAS }),
+  })
+  redes!: RedesSociales;
+
+  @Prop({ type: [String], default: [] })
+  certificaciones!: string[];
+
   @Prop({ default: 0, min: 0, max: 5 })
   calificacionPromedio!: number;
 
@@ -67,6 +78,8 @@ export type PaseadorLean = {
   telefono: string;
   disponible: boolean;
   razasAceptadas: string[];
+  redes?: Partial<RedesSociales>;
+  certificaciones?: string[];
   calificacionPromedio: number;
   cantidadResenas: number;
 };

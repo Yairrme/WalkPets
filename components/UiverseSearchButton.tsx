@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.verdeOscuro,
     borderWidth: 2,
     borderColor: "rgba(168, 192, 122, 0.8)", // Borde verde menta en armonía
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     paddingVertical: 14,
     paddingHorizontal: 28,
     overflow: "hidden",
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   glowLayer: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.verdeMenta,
-    borderRadius: radius.md - 2,
+    borderRadius: radius.full,
   },
   lightBeam: {
     position: "absolute",

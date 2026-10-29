@@ -131,12 +131,51 @@ describe('DetallePaseador', () => {
     expect(screen.queryByText('Libre')).toBeNull();
   });
 
-  it('muestra el estado de error cuando el paseador no existe', async () => {
+  it('distingue un paseador inexistente de un error de conexión', async () => {
     mockGetPaseadorById.mockResolvedValue(null);
 
     render(<DetallePaseador />);
 
-    expect(await screen.findByText('Algo salió mal')).toBeTruthy();
+    expect(await screen.findByText('No encontramos este paseador')).toBeTruthy();
+    expect(screen.queryByText('Algo salió mal')).toBeNull();
+  });
+
+  it('muestra las iniciales cuando el paseador no tiene foto', async () => {
+    mockGetPaseadorById.mockResolvedValue({ ...paseadorCipolletti, foto: '' });
+
+    render(<DetallePaseador />);
+
+    expect(await screen.findByLabelText('Sin foto de Lucía Fernández')).toBeTruthy();
+    expect(screen.getByText('LF')).toBeTruthy();
+  });
+
+  it('muestra permisos declarados y abre las redes del paseador', async () => {
+    mockGetPaseadorById.mockResolvedValue({
+      ...paseadorCipolletti,
+      certificaciones: ['Habilitación municipal'],
+      redes: { instagram: 'lucia.paseos', facebook: '', tiktok: '', web: '' },
+    });
+
+    render(<DetallePaseador />);
+
+    expect(await screen.findByText('✓ Habilitación municipal')).toBeTruthy();
+    expect(screen.getByText(/Declarado por el paseador/)).toBeTruthy();
+    expect(screen.queryByText('Facebook ↗')).toBeNull();
+
+    fireEvent.press(screen.getByLabelText('Abrir Instagram de Lucía Fernández'));
+    await waitFor(() =>
+      expect(Linking.openURL).toHaveBeenCalledWith('https://instagram.com/lucia.paseos')
+    );
+  });
+
+  it('oculta las secciones de redes y permisos si están vacías', async () => {
+    mockGetPaseadorById.mockResolvedValue(paseadorCipolletti);
+
+    render(<DetallePaseador />);
+
+    await screen.findByText('Lucía Fernández');
+    expect(screen.queryByText('Permisos y certificaciones')).toBeNull();
+    expect(screen.queryByText('Redes')).toBeNull();
   });
 
   it('muestra el estado de error cuando el servicio falla', async () => {

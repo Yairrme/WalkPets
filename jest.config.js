@@ -1,3 +1,7 @@
+// Las pruebas usan el modo en memoria. Se fija acá (antes de transformar los
+// módulos) porque Expo puede incrustar las variables EXPO_PUBLIC_ al compilar.
+process.env.EXPO_PUBLIC_DATA_SOURCE = 'mock';
+
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',

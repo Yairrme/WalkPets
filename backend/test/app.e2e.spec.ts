@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
@@ -6,7 +6,7 @@ import request from 'supertest';
 // Pruebas de integración de la API completa contra una base MongoDB efímera.
 // No usan credenciales reales ni una base de producción.
 
-let app: INestApplication;
+let app: NestExpressApplication;
 let mongod: MongoMemoryServer;
 
 let tokenCliente = '';
@@ -50,15 +50,9 @@ beforeAll(async () => {
     imports: [AppModule],
   }).compile();
 
-  app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api');
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    })
-  );
+  app = moduleRef.createNestApplication<NestExpressApplication>();
+  const { configurarApp } = await import('../src/config/configurar-app');
+  configurarApp(app);
   await app.init();
 });
 
@@ -96,6 +90,13 @@ describe('POST /api/auth/registro', () => {
       .post('/api/auth/registro')
       .send(CLIENTE)
       .expect(409);
+  });
+
+  it('rechaza un correo con formato inválido', async () => {
+    await request(app.getHttpServer())
+      .post('/api/auth/registro')
+      .send({ ...CLIENTE, email: 'no-es-un-correo' })
+      .expect(400);
   });
 
   it('rechaza un cliente sin contraseña válida', async () => {
@@ -294,6 +295,21 @@ describe('POST /api/paseadores/:id/resenas', () => {
     expect(perfil.body.resenas).toHaveLength(1);
   });
 
+  it('rechaza una segunda reseña del mismo cliente al mismo paseador', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/paseadores/${paseadorId}/resenas`)
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .send({ mascota: 'Rocky', texto: 'Otra vez un paseo excelente.', calificacion: 1 })
+      .expect(409);
+
+    const perfil = await request(app.getHttpServer())
+      .get(`/api/paseadores/${paseadorId}`)
+      .expect(200);
+
+    expect(perfil.body.cantidadResenas).toBe(1);
+    expect(perfil.body.calificacionPromedio).toBe(5);
+  });
+
   it('devuelve 404 al reseñar un paseador inexistente', async () => {
     await request(app.getHttpServer())
       .post('/api/paseadores/64b000000000000000000000/resenas')
@@ -383,5 +399,212 @@ describe('Filtros combinados de paseadores', () => {
       .expect(200);
 
     expect(respuesta.body).toEqual([]);
+  });
+});
+
+describe('Foto de perfil del paseador', () => {
+  const registrar = (email: string, fotoUrl: string) =>
+    request(app.getHttpServer())
+      .post('/api/auth/registro')
+      .send({ ...PASEADOR, email, paseador: { ...PASEADOR.paseador, fotoUrl } });
+
+  it('acepta un avatar genérico', async () => {
+    const respuesta = await registrar('avatar@test.walkpets', 'avatar:hombre').expect(201);
+    expect(respuesta.body.paseador.fotoUrl).toBe('avatar:hombre');
+  });
+
+  it('acepta una foto subida como data URI de más de 100 KB', async () => {
+    // Supera el límite por defecto de Express (100 KB): valida el bodyParser de 1 MB.
+    const foto = `data:image/jpeg;base64,${'A'.repeat(200_000)}`;
+    const respuesta = await registrar('foto@test.walkpets', foto).expect(201);
+    expect(respuesta.body.paseador.fotoUrl).toBe(foto);
+  });
+
+  it('rechaza una foto que no es imagen ni URL', async () => {
+    await registrar('mala@test.walkpets', 'javascript:alert(1)').expect(400);
+  });
+
+  it('rechaza una foto subida demasiado pesada', async () => {
+    const foto = `data:image/jpeg;base64,${'A'.repeat(500_000)}`;
+    await registrar('pesada@test.walkpets', foto).expect(400);
+  });
+});
+
+describe('Panel del paseador: /api/paseadores/mio', () => {
+  it('devuelve el perfil propio', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .get('/api/paseadores/mio')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .expect(200);
+
+    expect(respuesta.body.id).toBe(paseadorId);
+    expect(respuesta.body.redes).toEqual({ instagram: '', facebook: '', tiktok: '', web: '' });
+    expect(respuesta.body.certificaciones).toEqual([]);
+  });
+
+  it('edita precio, disponibilidad, redes y certificaciones', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .patch('/api/paseadores/mio')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .send({
+        precioHora: 2500,
+        disponible: false,
+        redes: { instagram: '@lucia.paseos', web: 'https://lucia.com.ar' },
+        certificaciones: ['Habilitación municipal', ' Habilitación municipal '],
+      })
+      .expect(200);
+
+    expect(respuesta.body.precioHora).toBe(2500);
+    expect(respuesta.body.disponible).toBe(false);
+    expect(respuesta.body.redes.instagram).toBe('lucia.paseos');
+    expect(respuesta.body.certificaciones).toEqual(['Habilitación municipal']);
+
+    const publico = await request(app.getHttpServer())
+      .get(`/api/paseadores/${paseadorId}`)
+      .expect(200);
+    expect(publico.body.redes.web).toBe('https://lucia.com.ar');
+    expect(publico.body.descripcion).toBe(PASEADOR.paseador.descripcion);
+  });
+
+  it('cambia el teléfono en el perfil y en la cuenta', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/paseadores/mio')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .send({ telefono: '299 4999888' })
+      .expect(200);
+
+    const cuenta = await request(app.getHttpServer())
+      .get('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .expect(200);
+    expect(cuenta.body.telefono).toBe('+5492994999888');
+  });
+
+  it('rechaza redes mal escritas', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/paseadores/mio')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .send({ redes: { instagram: 'con espacios' } })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .patch('/api/paseadores/mio')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .send({ redes: { web: 'sin-protocolo.com' } })
+      .expect(400);
+  });
+
+  it('rechaza más de 8 certificaciones', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/paseadores/mio')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .send({ certificaciones: Array.from({ length: 9 }, (_, i) => `Curso número ${i}`) })
+      .expect(400);
+  });
+
+  it('no deja editar a un cliente ni sin sesión', async () => {
+    await request(app.getHttpServer()).patch('/api/paseadores/mio').send({}).expect(401);
+    await request(app.getHttpServer())
+      .patch('/api/paseadores/mio')
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .send({ precioHora: 1 })
+      .expect(403);
+  });
+});
+
+describe('Mi perfil: /api/cuenta', () => {
+  it('devuelve la cuenta propia sin datos sensibles', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .get('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .expect(200);
+
+    expect(respuesta.body.email).toBe(CLIENTE.email);
+    expect(respuesta.body).not.toHaveProperty('passwordHash');
+    expect(respuesta.body.mascotas).toBe('');
+  });
+
+  it('el cliente guarda ciudad, barrio y mascotas', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .patch('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .send({ ciudad: 'Neuquén', barrio: 'Alta Barda', mascotas: 'Rocky, labrador' })
+      .expect(200);
+
+    expect(respuesta.body).toMatchObject({
+      ciudad: 'Neuquén',
+      barrio: 'Alta Barda',
+      mascotas: 'Rocky, labrador',
+    });
+  });
+
+  it('el cliente puede quitar su teléfono; el paseador no', async () => {
+    const cliente = await request(app.getHttpServer())
+      .patch('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .send({ telefono: '' })
+      .expect(200);
+    expect(cliente.body.telefono).toBeNull();
+
+    await request(app.getHttpServer())
+      .patch('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .send({ telefono: '' })
+      .expect(400);
+  });
+
+  it('cambiar el nombre del paseador actualiza su perfil público', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenPaseador}`)
+      .send({ nombre: 'Lucía Belén' })
+      .expect(200);
+
+    const publico = await request(app.getHttpServer())
+      .get(`/api/paseadores/${paseadorId}`)
+      .expect(200);
+    expect(publico.body.nombre).toBe('Lucía Belén');
+  });
+
+  it('no permite cambiar el correo ni el rol', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .send({ rol: 'paseador' })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .patch('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .send({ email: 'otro@test.walkpets' })
+      .expect(400);
+  });
+
+  it('rechaza una ciudad fuera de la zona', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/cuenta')
+      .set('Authorization', `Bearer ${tokenCliente}`)
+      .send({ ciudad: 'Córdoba' })
+      .expect(400);
+  });
+});
+
+describe('Registro con redes y certificaciones', () => {
+  it('guarda redes y certificaciones al crear el perfil', async () => {
+    const respuesta = await request(app.getHttpServer())
+      .post('/api/auth/registro')
+      .send({
+        ...PASEADOR,
+        email: 'redes@test.walkpets',
+        paseador: {
+          ...PASEADOR.paseador,
+          redes: { tiktok: '@paseos.cipo' },
+          certificaciones: ['Primeros auxilios caninos'],
+        },
+      })
+      .expect(201);
+
+    expect(respuesta.body.paseador.redes.tiktok).toBe('paseos.cipo');
+    expect(respuesta.body.paseador.certificaciones).toEqual(['Primeros auxilios caninos']);
   });
 });

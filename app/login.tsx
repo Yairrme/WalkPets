@@ -16,8 +16,6 @@ import { AppButton } from "../components/AppButton";
 import { colors, fonts, radius, shadows, spacing } from "../src/constants/theme";
 import { useSesion } from "../src/context/SesionContext";
 import {
-  CREDENCIALES_DEMO,
-  esModoDemo,
   iniciarSesion,
   registrarCuentaCliente,
 } from "../src/services/auth.service";
@@ -40,7 +38,6 @@ export default function LoginScreen() {
 
   const { width } = useWindowDimensions();
   const isWide = width >= 600;
-  const modoDemo = esModoDemo();
 
   const limpiarFormulario = () => {
     setError(null);
@@ -100,7 +97,7 @@ export default function LoginScreen() {
     if (telefono.trim()) {
       const normalizado = normalizarTelefono(telefono);
       if (!normalizado) {
-        setError("Ingresá un teléfono válido (ej. +54 299 4123456) o dejalo vacío.");
+        setError("Ingresá un teléfono válido (ej. 4123456 o 299 4123456) o dejalo vacío.");
         return;
       }
       telefonoNormalizado = `+${normalizado}`;
@@ -122,13 +119,6 @@ export default function LoginScreen() {
     } finally {
       setCargando(false);
     }
-  };
-
-  const rellenarDemo = (tipo: "cliente" | "paseador") => {
-    setModo("login");
-    setError(null);
-    setEmail(CREDENCIALES_DEMO[tipo].email);
-    setPassword(CREDENCIALES_DEMO[tipo].password);
   };
 
   // Sesión activa: mostramos el resumen y las acciones disponibles por rol.
@@ -337,7 +327,7 @@ export default function LoginScreen() {
                 <MaterialIcons name="phone" size={20} color={colors.grisOscuro} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Ej: +54 299 4123456"
+                  placeholder="Ej: 4123456 o 299 4123456"
                   placeholderTextColor={colors.grisMedio}
                   value={telefono}
                   onChangeText={setTelefono}
@@ -355,29 +345,6 @@ export default function LoginScreen() {
             cargando={cargando}
           />
 
-          {modoDemo && modo === "login" && (
-            <View style={styles.demoSection}>
-              <Text style={styles.demoTitle}>💡 Cuentas de demostración (modo mock)</Text>
-              <View style={styles.demoButtonsRow}>
-                <TouchableOpacity
-                  style={styles.demoBtn}
-                  onPress={() => rellenarDemo("cliente")}
-                  accessibilityRole="button"
-                  accessibilityLabel="Completar credenciales de cliente de demostración"
-                >
-                  <Text style={styles.demoBtnTxt}>🐕 Cliente</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.demoBtn, styles.demoBtnPaseador]}
-                  onPress={() => rellenarDemo("paseador")}
-                  accessibilityRole="button"
-                  accessibilityLabel="Completar credenciales de paseador de demostración"
-                >
-                  <Text style={[styles.demoBtnTxt, { color: colors.naranja }]}>🦮 Paseador</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
         </View>
 
         <View style={styles.footer}>
@@ -428,7 +395,8 @@ const styles = StyleSheet.create({
   },
   titulo: {
     fontSize: fonts.sizes.xxl,
-    fontWeight: "800",
+    fontWeight: fonts.pesos.semi,
+    letterSpacing: fonts.tracking.titulo,
     color: colors.negro,
     textAlign: "center",
     marginBottom: spacing.xs,
@@ -520,7 +488,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorClaro,
     borderColor: colors.error,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -542,7 +510,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.grisClaro,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     borderWidth: 1.5,
     borderColor: "transparent",
     paddingHorizontal: spacing.md,
@@ -560,41 +528,6 @@ const styles = StyleSheet.create({
   eyeBtn: {
     padding: spacing.xs,
   },
-  demoSection: {
-    marginTop: spacing.xl,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.grisClaro,
-    alignItems: "center",
-  },
-  demoTitle: {
-    fontSize: fonts.sizes.xs,
-    color: colors.grisOscuro,
-    fontWeight: "600",
-    marginBottom: spacing.sm,
-    textAlign: "center",
-  },
-  demoButtonsRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  demoBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radius.full,
-    backgroundColor: colors.verdePastel,
-    borderWidth: 1,
-    borderColor: colors.verde,
-  },
-  demoBtnPaseador: {
-    backgroundColor: colors.naranjaClaro,
-    borderColor: colors.naranja,
-  },
-  demoBtnTxt: {
-    fontSize: fonts.sizes.xs,
-    fontWeight: "700",
-    color: colors.verde,
-  },
   footer: {
     marginTop: spacing.xl,
     alignItems: "center",
@@ -610,7 +543,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: fonts.sizes.md,
-    fontWeight: "800",
+    fontWeight: fonts.pesos.semi,
     color: colors.verde,
     textDecorationLine: "underline",
   },

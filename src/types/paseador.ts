@@ -18,14 +18,22 @@ export type Paseador = {
   disponible: boolean; // Indica si actualmente acepta nuevos perros
   razasAceptadas: string[]; // Lista de preferencias (ej. "Razas pequeñas", "Todas las razas")
   resenas: Resena[]; // Lista de comentarios dejados por otros dueños
-  turnosDisponibles: Turno[]; // LEGADO: horarios de reserva, fuera del flujo objetivo
+  redes: RedesSociales; // Usuarios de redes (sin "@"); vacío = no la usa
+  certificaciones: string[]; // Permisos y certificaciones declarados por el paseador
   esPropietario?: boolean; // true cuando el usuario autenticado es dueño del perfil
+};
+
+export type RedesSociales = {
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  web: string; // URL completa (https://...)
 };
 
 // Datos que envía el formulario de registro de paseadores.
 export type NuevoPaseadorInput = Omit<
   Paseador,
-  'id' | 'calificacion' | 'cantidadResenas' | 'resenas' | 'turnosDisponibles'
+  'id' | 'calificacion' | 'cantidadResenas' | 'resenas'
 > & {
   email?: string; // Requerido en modo API para crear la cuenta
   password?: string; // Requerido en modo API; nunca se persiste en el frontend
@@ -57,27 +65,35 @@ export type Usuario = {
   email: string;
   telefono?: string;
   rol: Rol;
+  // Datos opcionales del perfil del cliente; nunca se muestran a otros usuarios.
+  ciudad?: Ciudad | null;
+  barrio?: string;
+  mascotas?: string;
 };
+
+// Campos que el paseador puede editar desde su panel.
+export type CambiosPerfilPaseador = Partial<
+  Pick<
+    Paseador,
+    | 'foto'
+    | 'ciudad'
+    | 'barrio'
+    | 'descripcion'
+    | 'precioHora'
+    | 'telefono'
+    | 'disponible'
+    | 'razasAceptadas'
+    | 'redes'
+    | 'certificaciones'
+  >
+>;
+
+// Campos que cualquier usuario puede editar de su cuenta ("Mi perfil").
+export type CambiosCuenta = Partial<
+  Pick<Usuario, 'nombre' | 'apellido' | 'telefono' | 'ciudad' | 'barrio' | 'mascotas'>
+>;
 
 export type Sesion = {
   token: string;
   usuario: Usuario;
-};
-
-// LEGADO: bloques de horario del flujo de reservas, fuera del objetivo.
-export type Turno = {
-  id: string; // Identificador único del turno
-  dia: string; // Día de la semana (ej. "Lunes", "Martes")
-  horario: string; // Franja horaria (ej. "08:00 - 09:00")
-  disponible: boolean; // Si el turno ya fue reservado (false) o sigue libre (true)
-};
-
-// LEGADO: datos necesarios para solicitar o crear una nueva reserva.
-export type ReservaTurno = {
-  paseadorId: string; // ID del paseador elegido
-  turnoId: string; // ID del turno horario elegido
-  nombreDuenio: string; // Nombre de quien contrata
-  nombreMascota: string; // Nombre del perro a pasear
-  telefono: string; // Teléfono de contacto para esta reserva
-  notas: string; // Indicaciones adicionales (ej. "Cuidado, tira mucho de la correa")
 };

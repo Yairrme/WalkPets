@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
-  Image,
+  Animated,
   Platform,
   StyleSheet,
   Text,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { colors, fonts, radius, shadows, spacing } from '../src/constants/theme';
+import { AvatarPaseador } from './AvatarPaseador';
 import { Paseador } from '../src/types/paseador';
 
 // ============================================================================
@@ -18,8 +19,6 @@ import { Paseador } from '../src/types/paseador';
 // suave al hacer hover en web.
 // ============================================================================
 
-const FOTO_FALLBACK =
-  'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
 
 type Props = {
   paseador: Paseador; // Objeto con todos los datos del paseador
@@ -29,12 +28,25 @@ type Props = {
 export function PaseadorCard({ paseador, onPress }: Props) {
   // Estado local para rastrear si el cursor (ratón) está sobre la tarjeta (solo web)
   const [isHovered, setIsHovered] = useState(false);
+  // Escala al presionar: la tarjeta "se hunde" levemente al tocarla.
+  const escala = useRef(new Animated.Value(1)).current;
   const nombreCompleto = `${paseador.nombre} ${paseador.apellido}`;
 
+  const animarEscala = (valor: number) =>
+    Animated.spring(escala, {
+      toValue: valor,
+      speed: 40,
+      bounciness: 6,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+
   return (
+    <Animated.View style={[styles.animado, { transform: [{ scale: escala }] }]}>
     <TouchableOpacity
       style={[styles.card, isHovered && styles.cardHovered]}
       onPress={onPress}
+      onPressIn={() => animarEscala(0.97)}
+      onPressOut={() => animarEscala(1)}
       activeOpacity={0.92}
       accessibilityRole="button"
       accessibilityLabel={`${nombreCompleto}, ${paseador.barrio}, ${paseador.ciudad}. ${
@@ -51,10 +63,13 @@ export function PaseadorCard({ paseador, onPress }: Props) {
     >
       {/* 1. FOTO CON BADGE DE DISPONIBILIDAD */}
       <View style={styles.fotoWrapper}>
-        <Image
-          source={{ uri: paseador.foto || FOTO_FALLBACK }}
+        <AvatarPaseador
+          foto={paseador.foto}
+          nombre={paseador.nombre}
+          apellido={paseador.apellido}
+          tamano={120}
+          relleno
           style={styles.foto}
-          accessibilityIgnoresInvertColors
         />
         <View
           style={[
@@ -109,18 +124,20 @@ export function PaseadorCard({ paseador, onPress }: Props) {
         </View>
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  animado: {
+    flex: 1,
+  },
   card: {
     backgroundColor: colors.blanco,
     borderRadius: radius.lg,
     flexDirection: 'column',
     flex: 1,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.grisClaro,
     ...shadows.card,
     // Transición CSS suave al hacer hover (solo web)
     ...(Platform.OS === 'web' ? { transition: 'all 0.2s ease' } : null),
@@ -137,8 +154,6 @@ const styles = StyleSheet.create({
   foto: {
     width: '100%',
     aspectRatio: 4 / 3,
-    resizeMode: 'cover',
-    backgroundColor: colors.grisClaro,
   },
   estadoBadge: {
     position: 'absolute',
@@ -212,7 +227,7 @@ const styles = StyleSheet.create({
   },
   precio: {
     fontSize: fonts.sizes.lg,
-    fontWeight: '800',
+    fontWeight: fonts.pesos.semi,
     color: colors.verdeOscuro,
   },
   precioUnidad: {

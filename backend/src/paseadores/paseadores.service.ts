@@ -5,9 +5,14 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { REDES_VACIAS, RedesSociales } from '../common/perfil-extra';
 import { normalizarTelefono } from '../common/telefono';
+import { UsuariosService } from '../usuarios/usuarios.service';
 import { QueryPaseadoresDto } from './dto/paseadores.dto';
-import { PerfilPaseadorDto } from './dto/perfil-paseador.dto';
+import {
+  ActualizarPerfilPaseadorDto,
+  PerfilPaseadorDto,
+} from './dto/perfil-paseador.dto';
 import { Paseador, PaseadorLean } from './schemas/paseador.schema';
 import { Resena, ResenaLean } from './schemas/resena.schema';
 
@@ -33,6 +38,8 @@ export type PaseadorDto = {
   telefono: string;
   disponible: boolean;
   razasAceptadas: string[];
+  redes: RedesSociales;
+  certificaciones: string[];
   calificacionPromedio: number;
   cantidadResenas: number;
   resenas?: ResenaDto[];
@@ -52,7 +59,8 @@ export class PaseadoresService {
     @InjectModel(Paseador.name)
     private readonly paseadores: Model<Paseador>,
     @InjectModel(Resena.name)
-    private readonly resenas: Model<Resena>
+    private readonly resenas: Model<Resena>,
+    private readonly usuarios: UsuariosService
   ) {}
 
   // Convierte un documento lean al contrato público de la API.
@@ -76,6 +84,8 @@ export class PaseadoresService {
       telefono: paseador.telefono,
       disponible: paseador.disponible,
       razasAceptadas: [...paseador.razasAceptadas],
+      redes: { ...REDES_VACIAS, ...(paseador.redes ?? {}) },
+      certificaciones: [...(paseador.certificaciones ?? [])],
       calificacionPromedio: paseador.calificacionPromedio,
       cantidadResenas: paseador.cantidadResenas,
     };
@@ -172,6 +182,9 @@ export class PaseadoresService {
       );
     }
 
+    const redes = { ...REDES_VACIAS, ...(datos.redes ?? {}) };
+    const certificaciones = datos.certificaciones ?? [];
+
     const perfil = await this.paseadores.create({
       usuario: usuario._id,
       nombre: usuario.nombre,
@@ -187,6 +200,8 @@ export class PaseadoresService {
         datos.razasAceptadas && datos.razasAceptadas.length > 0
           ? datos.razasAceptadas
           : ['Todas las razas'],
+      redes,
+      certificaciones,
       calificacionPromedio: 0,
       cantidadResenas: 0,
     });
@@ -204,9 +219,73 @@ export class PaseadoresService {
       telefono: perfil.telefono,
       disponible: perfil.disponible,
       razasAceptadas: perfil.razasAceptadas,
+      // Valores planos: el subdocumento de Mongoose no se copia con "...".
+      redes,
+      certificaciones: [...certificaciones],
       calificacionPromedio: perfil.calificacionPromedio,
       cantidadResenas: perfil.cantidadResenas,
     };
+  }
+
+  // Perfil propio del paseador autenticado (panel de edición).
+  async obtenerPropio(usuarioId: string): Promise<PaseadorDto> {
+    const perfil = await this.buscarPorUsuario(usuarioId);
+    if (!perfil) {
+      throw new NotFoundException('Tu cuenta todavía no tiene un perfil de paseador.');
+    }
+    return this.mapear(perfil, { usuarioId });
+  }
+
+  // Edita el perfil propio. Solo cambia los campos enviados; el teléfono se
+  // normaliza y se mantiene igual en la cuenta y en el perfil público.
+  async actualizarPropio(
+    usuarioId: string,
+    datos: ActualizarPerfilPaseadorDto
+  ): Promise<PaseadorDto> {
+    const perfil = await this.buscarPorUsuario(usuarioId);
+    if (!perfil) {
+      throw new NotFoundException('Tu cuenta todavía no tiene un perfil de paseador.');
+    }
+
+    const cambios: Record<string, unknown> = {};
+    if (datos.fotoUrl !== undefined) cambios.fotoUrl = datos.fotoUrl;
+    if (datos.ciudad !== undefined) cambios.ciudad = datos.ciudad;
+    if (datos.barrio !== undefined) cambios.barrio = datos.barrio.trim();
+    if (datos.descripcion !== undefined) cambios.descripcion = datos.descripcion.trim();
+    if (datos.precioHora !== undefined) cambios.precioHora = datos.precioHora;
+    if (datos.disponible !== undefined) cambios.disponible = datos.disponible;
+    if (datos.razasAceptadas !== undefined) cambios.razasAceptadas = datos.razasAceptadas;
+    if (datos.certificaciones !== undefined) cambios.certificaciones = datos.certificaciones;
+    if (datos.redes !== undefined) {
+      cambios.redes = { ...REDES_VACIAS, ...(perfil.redes ?? {}), ...datos.redes };
+    }
+
+    if (datos.telefono !== undefined) {
+      const normalizado = normalizarTelefono(datos.telefono);
+      if (!normalizado) {
+        throw new BadRequestException('El teléfono no es válido.');
+      }
+      cambios.telefono = `+${normalizado}`;
+      await this.usuarios.actualizar(usuarioId, { telefono: cambios.telefono as string });
+    }
+
+    const actualizado = await this.paseadores
+      .findByIdAndUpdate(perfil._id, { $set: cambios }, { new: true, runValidators: true })
+      .lean<PaseadorLean | null>()
+      .exec();
+    if (!actualizado) {
+      throw new NotFoundException('No encontramos tu perfil.');
+    }
+
+    return this.mapear(actualizado, { usuarioId });
+  }
+
+  // Mantiene el nombre visible del perfil igual al de la cuenta.
+  async sincronizarNombre(usuarioId: string, nombre: string, apellido: string): Promise<void> {
+    if (!Types.ObjectId.isValid(usuarioId)) return;
+    await this.paseadores
+      .updateOne({ usuario: new Types.ObjectId(usuarioId) }, { $set: { nombre, apellido } })
+      .exec();
   }
 
   // Recalcula promedio y cantidad de reseñas de forma atómica.

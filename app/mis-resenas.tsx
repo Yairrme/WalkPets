@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.verde,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
   },
   botonTexto: { color: colors.blanco, fontWeight: '700' },
   encabezado: {

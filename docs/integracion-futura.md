@@ -61,7 +61,6 @@ MONGODB_URI=mongodb://127.0.0.1:27017/walkpets
 JWT_SECRET=<cadena larga y aleatoria, mínimo 16 caracteres>
 JWT_EXPIRES_IN=7d
 CORS_ORIGIN=
-# SEED_PASSWORD=<contraseña de las cuentas demo, mínimo 8 caracteres>
 ```
 
 `backend/.env` está gitignoreado; solo se versiona `.env.example`. La app valida el entorno al arrancar y falla con un mensaje claro si falta `MONGODB_URI`, si `JWT_SECRET` es corto o si todavía tiene el valor de ejemplo.
@@ -117,26 +116,9 @@ MONGODB_URI=mongodb+srv://<usuario>:<clave>@<cluster>/walkpets?retryWrites=true&
 
 Nunca commitees ese valor. Si una credencial se filtró, rotala en Atlas.
 
-### 3.4 Datos de demostración (seed)
+### 3.4 Datos
 
-Con `backend/.env` configurado y `SEED_PASSWORD` definido:
-
-```powershell
-cd backend
-$env:SEED_PASSWORD="una-clave-de-demo"
-npm.cmd run seed
-```
-
-El seed es idempotente: crea las cuentas demo solo si no existen y no borra ni sobrescribe datos. Cuentas creadas:
-
-| Rol | Email |
-|---|---|
-| Cliente | `cliente@walkpets.demo` |
-| Paseador | `paseador@walkpets.demo` (Lucía, Cipolletti) |
-| Paseador | `mateo@walkpets.demo` (Mateo, Cipolletti) |
-| Paseador | `santiago@walkpets.demo` (Santiago, Neuquén) |
-
-La contraseña es la que hayas puesto en `SEED_PASSWORD`. En modo mock las cuentas de cliente y de Lucía existen con contraseña `demo1234`, y los botones de acceso rápido solo aparecen en ese modo.
+No hay seed ni cuentas de prueba: la base arranca vacía y se completa registrando paseadores y clientes desde la app.
 
 ---
 

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
+import { CuentaModule } from './cuenta/cuenta.module';
 import { validarEntorno } from './config/env.validation';
 import { HealthModule } from './health/health.module';
 import { PaseadoresModule } from './paseadores/paseadores.module';
@@ -23,6 +24,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     PaseadoresModule,
     ResenasModule,
     AuthModule,
+    CuentaModule,
     HealthModule,
   ],
 })

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +13,8 @@ import {
 } from '../paseadores/paseadores.service';
 import { Resena, ResenaLean } from '../paseadores/schemas/resena.schema';
 import { CrearResenaDto } from './dto/crear-resena.dto';
+
+const RESENA_DUPLICADA = 'Ya dejaste una reseña para este paseador.';
 
 @Injectable()
 export class ResenasService {
@@ -33,15 +36,29 @@ export class ResenasService {
       throw new BadRequestException('No podés reseñar tu propio perfil.');
     }
 
-    const creada = await this.resenas.create({
-      paseador: paseador._id,
-      autor: new Types.ObjectId(usuario.id),
-      autorNombre: `${usuario.nombre} ${usuario.apellido}`.trim(),
-      mascota: datos.mascota.trim(),
-      texto: datos.texto.trim(),
-      calificacion: datos.calificacion,
-      fecha: new Date(),
-    });
+    const autor = new Types.ObjectId(usuario.id);
+    if (await this.resenas.exists({ paseador: paseador._id, autor })) {
+      throw new ConflictException(RESENA_DUPLICADA);
+    }
+
+    let creada;
+    try {
+      creada = await this.resenas.create({
+        paseador: paseador._id,
+        autor,
+        autorNombre: `${usuario.nombre} ${usuario.apellido}`.trim(),
+        mascota: datos.mascota.trim(),
+        texto: datos.texto.trim(),
+        calificacion: datos.calificacion,
+        fecha: new Date(),
+      });
+    } catch (error) {
+      // Dos envíos simultáneos: el índice único frena el segundo.
+      if ((error as { code?: number }).code === 11000) {
+        throw new ConflictException(RESENA_DUPLICADA);
+      }
+      throw error;
+    }
 
     await this.paseadores.recalcularCalificacion(paseador._id);
 

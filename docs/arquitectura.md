@@ -20,7 +20,7 @@ El repositorio contiene dos paquetes independientes:
 | App móvil/web | raíz del repo | Expo SDK 54, React Native 0.81, Expo Router 6, TypeScript |
 | API REST | `backend/` | NestJS 11, Mongoose 9, MongoDB, JWT |
 
-Las reservas **no forman parte del flujo vigente**. Quedan archivos legados sin uso (ver §12).
+Las reservas **no forman parte del producto**. El flujo legado se eliminó el 2026-10-28.
 
 ---
 
@@ -33,7 +33,7 @@ Las reservas **no forman parte del flujo vigente**. Quedan archivos legados sin 
 | Base de datos | MongoDB vía `MONGODB_URI` |
 | Autenticación | JWT con roles `cliente` / `paseador`, contraseñas con bcrypt |
 | Sesión en el cliente | Guardada en AsyncStorage |
-| Fuente de datos | `mock` (por defecto) o `api`, según `EXPO_PUBLIC_DATA_SOURCE` |
+| Fuente de datos | `api` (versión funcional) o `mock` (en memoria, vacío), según `EXPO_PUBLIC_DATA_SOURCE` |
 | Tests frontend | 12 suites / 88 tests |
 | Tests backend | 3 suites / 39 tests |
 | Typecheck | `npm run typecheck` en ambos paquetes |
@@ -54,8 +54,7 @@ WalkPets/
 │   └── paseadores/
 │       ├── index.tsx                 Listado y filtros
 │       ├── [id].tsx                  Perfil, contacto y alta de reseña
-│       ├── registro.tsx              Registro de paseador
-│       └── reserva.tsx               LEGADO: no está enlazado en la UI
+│       └── registro.tsx              Registro de paseador
 ├── components/                       UI reutilizable
 ├── src/
 │   ├── config/api.ts                 Fuente de datos y URL de la API
@@ -63,15 +62,18 @@ WalkPets/
 │   │   ├── ciudades.ts               Ciudades habilitadas
 │   │   └── theme.ts                  Tokens de diseño
 │   ├── context/SesionContext.tsx     Sesión global
-│   ├── hooks/                        Hooks de formularios (incluye legado)
+│   ├── data/                         Almacén en memoria del modo mock (vacío al iniciar)
+│   ├── hooks/                        useListadoPaseadores, usePerfilPaseador
 │   ├── services/
-│   │   ├── paseadores.service.ts     Fachada mock/API de paseadores
+│   │   ├── paseadores.service.ts     Casos de uso de paseadores
 │   │   ├── auth.service.ts           Login y registro
-│   │   ├── resenas.service.ts        Reseñas
+│   │   ├── resenas.service.ts        Casos de uso de reseñas
 │   │   ├── sesion.service.ts         Persistencia de sesión
+│   │   ├── mappers.ts                Contrato API → modelo del frontend
+│   │   ├── repositorios/             Interfaces + implementaciones mock y API
 │   │   └── api/client.ts             fetch + timeout + ApiError
 │   ├── types/paseador.ts             Contratos TypeScript
-│   └── utils/telefono.ts             Normalización y links tel/WhatsApp
+│   └── utils/                        telefono.ts, filtrosPaseadores.ts
 ├── __tests__/                        Tests del frontend
 ├── backend/                          Paquete NestJS independiente
 │   ├── src/
@@ -84,7 +86,6 @@ WalkPets/
 │   │   ├── health/                   Estado del servicio
 │   │   ├── common/                   Filtro de errores, guards, decoradores
 │   │   ├── config/                   Validación de variables de entorno
-│   │   └── seed/                     Datos de demostración idempotentes
 │   ├── test/                         Unitarios + E2E con mongodb-memory-server
 │   ├── .env.example
 │   └── package.json
@@ -107,8 +108,8 @@ WalkPets/
 | `/paseadores` | `app/paseadores/index.tsx` | Listado y filtros | Vigente |
 | `/paseadores/[id]` | `app/paseadores/[id].tsx` | Perfil, contacto y reseña | Vigente |
 | `/paseadores/registro` | `app/paseadores/registro.tsx` | Alta de paseador | Vigente |
+| `/mi-perfil` | `app/mi-perfil.tsx` | Datos del cliente / panel del paseador | Vigente |
 | `/mis-resenas` | `app/mis-resenas.tsx` | Reseñas propias del paseador | Vigente |
-| `/paseadores/reserva` | `app/paseadores/reserva.tsx` | Reserva de turno | **Legado, sin enlaces** |
 
 El header global define colores, tipografía y un `BackButton` animado. El listado sobrescribe el botón para volver a `/`.
 
@@ -132,15 +133,23 @@ El header global define colores, tipografía y un `BackButton` animado. El lista
 ## 6. Flujo de datos
 
 ```text
-Pantalla (useEffect + useState)
-  → src/services/paseadores.service.ts | auth.service.ts | resenas.service.ts
-      ├── usarApi() === false → PASEADORES_MOCK / USUARIOS_MOCK en memoria
-      └── usarApi() === true  → src/services/api/client.ts → API NestJS → MongoDB
+Pantalla (solo dibuja)
+  → hook (src/hooks/: estado de carga, filtros, refresco)
+  → caso de uso (src/services/*.service.ts: reglas de negocio, sesión, rol)
+  → repositorio (src/services/repositorios/: interfaz RepositorioPaseadores / RepositorioResenas)
+      ├── usarApi() === false → mock.ts → src/data/paseadores.mock.ts en memoria
+      └── usarApi() === true  → api.ts → src/services/api/client.ts → API NestJS → MongoDB
   → Paseador / Resena / Sesion
 ```
 
+Principios aplicados:
+
+- **Responsabilidad única:** los datos de demo, el mapeo, el acceso a datos, las reglas de negocio y el estado de pantalla viven en módulos separados.
+- **Abierto/cerrado e inversión de dependencias:** los servicios dependen de las interfaces de `repositorios/tipos.ts`. Sumar otra fuente de datos es agregar una implementación, sin tocar pantallas ni servicios.
+- **Sustitución de Liskov:** las implementaciones mock y API cumplen el mismo contrato y aplican las mismas reglas (reseña única, correo único, sin auto-reseña).
+
 - `usarApi()` es verdadero solo si `EXPO_PUBLIC_DATA_SOURCE=api` **y** `EXPO_PUBLIC_API_URL` tiene valor.
-- El mock sigue siendo la fuente por defecto y el modo usado por los tests de pantallas.
+- El mock arranca vacío (sin paseadores ni cuentas de prueba); los tests cargan sus propios datos.
 - Las pantallas manejan carga, error, vacío, reintento y (en el listado) sin resultados.
 - El filtrado por ciudad, barrio y disponibilidad se hace en el cliente sobre el listado recibido; la API también acepta esos filtros por query string.
 
@@ -157,7 +166,7 @@ Pantalla (useEffect + useState)
 | `resenas[].autorNombre` | `resenas[].autor` |
 | `resenas[].fecha` (ISO) | `resenas[].fecha` (`YYYY-MM-DD`) |
 
-El mapeo vive en `src/services/paseadores.service.ts` y `src/services/resenas.service.ts`. Las pantallas nunca llaman a `fetch`.
+El mapeo vive en `src/services/mappers.ts`. Las pantallas nunca llaman a `fetch`.
 
 ---
 
@@ -168,7 +177,7 @@ El mapeo vive en `src/services/paseadores.service.ts` y `src/services/resenas.se
 - Las contraseñas se guardan con `bcryptjs` (10 rondas) y el campo `passwordHash` tiene `select: false`.
 - El JWT viaja en `Authorization: Bearer <token>`. `JwtStrategy` recarga el usuario desde MongoDB en cada request, por lo que un usuario eliminado pierde acceso.
 - Roles efectivos: `cliente` y `paseador`.
-  - Publicar reseña: solo `cliente` autenticado y nunca sobre el propio perfil.
+  - Publicar reseña: solo `cliente` autenticado, nunca sobre el propio perfil y una sola vez por paseador (409 si repite; índice único `paseador + autor`).
   - Consultar reseñas propias: solo `paseador` autenticado.
   - Listado y perfil: públicos. El perfil usa un guard JWT opcional para marcar `esPropietario`.
 - En el frontend la sesión se guarda en AsyncStorage (`walkpets.sesion`), se carga al iniciar (`SesionProvider`) y se borra al cerrar sesión.
@@ -296,7 +305,6 @@ Las reseñas viven en colección separada y los contadores (`calificacionPromedi
 | `JWT_EXPIRES_IN` | No (`7d`) | Expiración del token |
 | `PORT` | No (`3000`) | Puerto HTTP |
 | `CORS_ORIGIN` | No | Orígenes permitidos, separados por coma; vacío = todos |
-| `SEED_PASSWORD` | Solo seed | Contraseña de las cuentas demo |
 
 La validación de entorno falla al arrancar con un mensaje claro si falta o es inválido un valor obligatorio. `.env` está gitignoreado; solo se versiona `.env.example`.
 
@@ -344,7 +352,6 @@ La validación de entorno falla al arrancar con un mensaje claro si falta o es i
 
 | Tema | Descripción |
 |---|---|
-| Reservas | `app/paseadores/reserva.tsx`, `src/hooks/useReservaForm.ts`, `ReservaTurno`, `Turno` y `turnosDisponibles` siguen en el repo, sin enlaces en la UI vigente. |
 | CI | No hay pipeline. |
 | Lint | Sin warnings. |
 | Seguridad | Sin refresh tokens, verificación de email, recuperación de contraseña, rate limiting ni `expo-secure-store`. |
@@ -353,7 +360,6 @@ La validación de entorno falla al arrancar con un mensaje claro si falta o es i
 | Imágenes | El mock usa `randomuser.me`; el registro acepta una URL de foto. |
 | Estilos | Quedan colores de marca hardcodeados que no coinciden con el tema. |
 | CORS | Sin `CORS_ORIGIN`, el backend acepta cualquier origen (solo aceptable en desarrollo). |
-| Seed | Requiere `SEED_PASSWORD` y una base accesible; no se ejecuta en tests. |
 
 ---
 

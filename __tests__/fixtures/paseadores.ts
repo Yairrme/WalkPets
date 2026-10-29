@@ -15,9 +15,8 @@ export const paseadorCipolletti: Paseador = {
   telefono: '+54 299 4123456',
   disponible: true,
   razasAceptadas: ['Todas las razas'],
-  turnosDisponibles: [
-    { id: 't1', dia: 'Lunes', horario: '08:00 - 09:00', disponible: true },
-  ],
+  redes: { instagram: '', facebook: '', tiktok: '', web: '' },
+  certificaciones: [],
   resenas: [
     {
       id: 'r1',
@@ -45,7 +44,8 @@ export const paseadorVillaAlberdi: Paseador = {
   telefono: '+54 299 4234567',
   disponible: true,
   razasAceptadas: ['Razas medianas', 'Razas grandes'],
-  turnosDisponibles: [],
+  redes: { instagram: '', facebook: '', tiktok: '', web: '' },
+  certificaciones: [],
   resenas: [],
 };
 
@@ -64,7 +64,8 @@ export const paseadorNeuquen: Paseador = {
   telefono: '+54 299 4456789',
   disponible: false,
   razasAceptadas: ['Razas pequeñas', 'Perros mayores'],
-  turnosDisponibles: [],
+  redes: { instagram: '', facebook: '', tiktok: '', web: '' },
+  certificaciones: [],
   resenas: [
     {
       id: 'r9',

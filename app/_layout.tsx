@@ -1,8 +1,10 @@
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
-import { colors } from "../src/constants/theme";
+import { colors, fonts } from "../src/constants/theme";
+import { AvisoModoPrueba } from "../components/AvisoModoPrueba";
 import { BackButton } from "../components/BackButton";
+import { BotonPerfilHeader } from "../components/BotonPerfilHeader";
 import { SesionProvider } from "../src/context/SesionContext";
 
 // ============================================================================
@@ -31,17 +33,22 @@ export default function RootLayout() {
           // Color del texto e íconos en el encabezado (blanco)
           headerTintColor: colors.blanco,
           // Estilo tipográfico para el título de la pantalla en la barra
-          headerTitleStyle: { fontWeight: "700", color: colors.blanco },
+          headerTitleStyle: { fontWeight: fonts.pesos.semi, color: colors.blanco },
           // Título centrado también en Android
           headerTitleAlign: "center",
           // Oculta la línea o sombra inferior predeterminada del navegador
           headerShadowVisible: false,
           // Color de fondo por defecto para el área de contenido de todas las pantallas
           contentStyle: { backgroundColor: colors.crema },
-          // Inyección global del botón de atrás animado (por defecto hace router.back)
+          // Inyección global del botón de atrás animado. Si la pantalla se abrió
+          // directo por URL (sin historial), vuelve al inicio en vez de no hacer nada.
+          // Acceso a "Mi perfil" (o "Entrar") en todas las pantallas internas.
+          headerRight: () => <BotonPerfilHeader />,
           headerLeft: () => (
             <View style={{ marginRight: 12 }}>
-              <BackButton onPress={() => router.back()} />
+              <BackButton
+                onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+              />
             </View>
           ),
         }}
@@ -77,16 +84,10 @@ export default function RootLayout() {
           options={{ title: "Perfil del paseador" }}
         />
 
-        {/* 4. Pantalla para Reservar un Turno con el Paseador */}
-        <Stack.Screen
-          name="paseadores/reserva"
-          options={{ title: "Reservar turno" }}
-        />
-
-        {/* 5. Formulario de Registro para nuevos Paseadores */}
+        {/* 4. Formulario de Registro para nuevos Paseadores */}
         <Stack.Screen
           name="paseadores/registro"
-          options={{ title: "Registrarse como Paseador" }}
+          options={{ title: "Ofrecé tus paseos" }}
         />
 
         {/* 6. Pantalla de Inicio de Sesión (Login para Usuarios y Paseadores) */}
@@ -95,12 +96,20 @@ export default function RootLayout() {
           options={{ title: "Iniciar Sesión" }}
         />
 
-        {/* 7. Reseñas recibidas por el paseador autenticado */}
+        {/* 7. Mi perfil: datos del cliente o panel del paseador */}
+        <Stack.Screen
+          name="mi-perfil"
+          options={{ title: "Mi perfil" }}
+        />
+
+        {/* 8. Reseñas recibidas por el paseador autenticado */}
         <Stack.Screen
           name="mis-resenas"
           options={{ title: "Mis reseñas" }}
         />
       </Stack>
+      {/* Aviso visible cuando los datos no van a la base (modo mock) */}
+      <AvisoModoPrueba />
     </SesionProvider>
   );
 }

@@ -1,92 +1,60 @@
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native';
+import { Aparecer } from '../../components/Aparecer';
 import { EmptyState } from '../../components/EmptyState';
+import { FiltroDesplegable } from '../../components/FiltroDesplegable';
 import { PaseadorCard } from '../../components/PaseadorCard';
-import { CIUDADES, Ciudad } from '../../src/constants/ciudades';
+import { CIUDADES } from '../../src/constants/ciudades';
 import { colors, fonts, radius, spacing } from '../../src/constants/theme';
-import { getPaseadores } from '../../src/services/paseadores.service';
+import { useListadoPaseadores } from '../../src/hooks/useListadoPaseadores';
 import { Paseador } from '../../src/types/paseador';
+import { ORDENES } from '../../src/utils/filtrosPaseadores';
 
-type Estado = 'cargando' | 'exito' | 'error' | 'vacio';
+// Celda vacía que completa la última fila de la grilla. Sin ella, una tarjeta
+// sola en la última fila se estiraba a todo el ancho.
+type Celda = Paseador | { id: string; relleno: true };
+
+function completarGrilla(items: Paseador[], columnas: number): Celda[] {
+  const faltan = (columnas - (items.length % columnas)) % columnas;
+  const relleno = Array.from({ length: faltan }, (_, i) => ({ id: `relleno-${i}`, relleno: true as const }));
+  return [...items, ...relleno];
+}
 
 export default function ListaPaseadores() {
   const { width } = useWindowDimensions();
   // Diseño responsivo: 4 columnas en PC grandes, 3 en tablets, 2 en móviles
   const columnas = width >= 1100 ? 4 : width >= 768 ? 3 : 2;
 
-  const [paseadores, setPaseadores] = useState<Paseador[]>([]);
-  const [estado, setEstado] = useState<Estado>('cargando');
-  const [soloDisponibles, setSoloDisponibles] = useState(false);
-  const [ciudadSeleccionada, setCiudadSeleccionada] = useState<Ciudad | null>(null);
-  const [barrioSeleccionado, setBarrioSeleccionado] = useState<string | null>(null);
-
-  const cargar = async () => {
-    setEstado('cargando');
-    try {
-      const datos = await getPaseadores();
-      setPaseadores(datos);
-      setEstado(datos.length === 0 ? 'vacio' : 'exito');
-    } catch {
-      setEstado('error');
-    }
-  };
-
-  useEffect(() => { cargar(); }, []);
-
-  // Lista de barrios únicos de la ciudad seleccionada (o de todas las ciudades).
-  const barrios = useMemo(() => {
-    const base = ciudadSeleccionada
-      ? paseadores.filter((p) => p.ciudad === ciudadSeleccionada)
-      : paseadores;
-    const todos = base.map((p) => p.barrio);
-    return [...new Set(todos)];
-  }, [paseadores, ciudadSeleccionada]);
-
-  // Paseadores filtrados según los filtros activos
-  const paseadoresFiltrados = useMemo(() => {
-    return paseadores.filter((p) => {
-      if (ciudadSeleccionada && p.ciudad !== ciudadSeleccionada) return false;
-      if (soloDisponibles && !p.disponible) return false;
-      if (barrioSeleccionado && p.barrio !== barrioSeleccionado) return false;
-      return true;
-    });
-  }, [paseadores, ciudadSeleccionada, soloDisponibles, barrioSeleccionado]);
-
-  const hayFiltrosActivos =
-    soloDisponibles || ciudadSeleccionada !== null || barrioSeleccionado !== null;
-
-  const limpiarFiltros = () => {
-    setSoloDisponibles(false);
-    setCiudadSeleccionada(null);
-    setBarrioSeleccionado(null);
-  };
-
-  const seleccionarCiudad = (ciudad: Ciudad | null) => {
-    setCiudadSeleccionada(ciudad);
-    // Si el barrio elegido no pertenece a la nueva ciudad, se limpia.
-    if (barrioSeleccionado) {
-      const barriosDisponibles = paseadores
-        .filter((p) => (ciudad ? p.ciudad === ciudad : true))
-        .map((p) => p.barrio);
-      if (!barriosDisponibles.includes(barrioSeleccionado)) {
-        setBarrioSeleccionado(null);
-      }
-    }
-  };
+  const {
+    estado,
+    paseadores,
+    filtrados,
+    barrios,
+    filtros,
+    filtrosActivos,
+    cargar,
+    seleccionarCiudad,
+    elegirBarrio,
+    alternarDisponibles,
+    ordenar,
+    limpiar,
+  } = useListadoPaseadores();
 
   const resumenFiltros = () => {
-    const ciudad = ciudadSeleccionada ? ` en ${ciudadSeleccionada}` : '';
-    const filtrado = hayFiltrosActivos ? ' (filtrado)' : '';
-    return `${paseadoresFiltrados.length} de ${paseadores.length} paseadores${ciudad}${filtrado}`;
+    const ciudad = filtros.ciudad ? ` en ${filtros.ciudad}` : '';
+    const filtrado = filtrosActivos ? ' (filtrado)' : '';
+    return `${filtrados.length} de ${paseadores.length} paseadores${ciudad}${filtrado}`;
   };
 
   if (estado === 'cargando') {
@@ -106,115 +74,83 @@ export default function ListaPaseadores() {
   return (
     <View style={styles.contenedor}>
 
-      {/* Barra de filtros */}
+      {/* Filtros compactos: una sola línea; cada píldora abre sus opciones */}
       <View style={styles.filtrosWrap}>
-        <View style={styles.filtrosInner}>
-          <View style={styles.filtrosHeader}>
-            <Text style={styles.filtrosTitulo}>Filtrá tu búsqueda</Text>
-            {hayFiltrosActivos && (
-              <TouchableOpacity
-                style={styles.limpiarBtn}
-                onPress={limpiarFiltros}
-                accessibilityRole="button"
-                accessibilityLabel="Limpiar todos los filtros"
-                hitSlop={8}
-              >
-                <Text style={styles.limpiarTexto}>✕ Limpiar</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.filtrosScroll}>
-            <Text style={styles.filtroGrupoLabel}>Ciudad</Text>
-
-            {/* Chips de ciudad: Todas, Cipolletti y Neuquén */}
-            <TouchableOpacity
-              style={[styles.chip, ciudadSeleccionada === null && styles.chipActivo]}
-              onPress={() => seleccionarCiudad(null)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Mostrar paseadores de todas las ciudades"
-              accessibilityState={{ selected: ciudadSeleccionada === null }}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtrosFila}
+        >
+          <FiltroDesplegable
+            titulo="Ciudad"
+            valor={filtros.ciudad}
+            activo={filtros.ciudad !== null}
+            opciones={[
+              { valor: null, etiqueta: 'Todas las ciudades' },
+              ...CIUDADES.map((ciudad) => ({ valor: ciudad, etiqueta: ciudad })),
+            ]}
+            onCambiar={seleccionarCiudad}
+          />
+          <FiltroDesplegable
+            titulo="Barrio"
+            valor={filtros.barrio}
+            activo={filtros.barrio !== null}
+            deshabilitado={barrios.length === 0}
+            opciones={[
+              { valor: null, etiqueta: 'Todos los barrios' },
+              ...barrios.map((barrio) => ({ valor: barrio, etiqueta: barrio })),
+            ]}
+            onCambiar={elegirBarrio}
+          />
+          <Pressable
+            onPress={alternarDisponibles}
+            style={({ pressed }) => [
+              styles.pildora,
+              filtros.soloDisponibles && styles.pildoraActiva,
+              pressed && styles.pildoraPresionada,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Solo paseadores disponibles"
+            accessibilityState={{ selected: filtros.soloDisponibles }}
+          >
+            <Text
+              style={[styles.pildoraTexto, filtros.soloDisponibles && styles.pildoraTextoActiva]}
             >
-              <Text style={[styles.chipTexto, ciudadSeleccionada === null && styles.chipTextoActivo]}>
-                Todas
-              </Text>
-            </TouchableOpacity>
-
-            {CIUDADES.map((ciudad) => {
-              const activa = ciudadSeleccionada === ciudad;
-              return (
-                <TouchableOpacity
-                  key={ciudad}
-                  style={[styles.chip, activa && styles.chipActivo]}
-                  onPress={() => seleccionarCiudad(ciudad)}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Filtrar por ciudad ${ciudad}`}
-                  accessibilityState={{ selected: activa }}
-                >
-                  <Text style={[styles.chipTexto, activa && styles.chipTextoActivo]}>
-                    🏙️ {ciudad}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-
-            {/* Separador */}
-            <View style={styles.separador} />
-
-            {/* Chip: Solo disponibles */}
-            <TouchableOpacity
-              style={[styles.chip, soloDisponibles && styles.chipActivo]}
-              onPress={() => setSoloDisponibles(!soloDisponibles)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Filtrar solo paseadores disponibles"
-              accessibilityState={{ selected: soloDisponibles }}
-            >
-              <Text style={[styles.chipTexto, soloDisponibles && styles.chipTextoActivo]}>
-                ✓ Disponibles
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Segunda fila: barrios de la ciudad seleccionada */}
-          {barrios.length > 0 && (
-            <View style={styles.filtrosScroll}>
-              <Text style={styles.filtroGrupoLabel}>Barrio</Text>
-              {barrios.map((barrio) => {
-                const activo = barrioSeleccionado === barrio;
-                return (
-                  <TouchableOpacity
-                    key={barrio}
-                    style={[styles.chip, activo && styles.chipActivo]}
-                    onPress={() => setBarrioSeleccionado(activo ? null : barrio)}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Filtrar por barrio ${barrio}`}
-                    accessibilityState={{ selected: activo }}
-                  >
-                    <Text style={[styles.chipTexto, activo && styles.chipTextoActivo]}>
-                      📍 {barrio}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </View>
+              {filtros.soloDisponibles ? '✓ ' : ''}Disponibles
+            </Text>
+          </Pressable>
+          <FiltroDesplegable
+            titulo="Ordenar"
+            valor={filtros.orden}
+            activo={filtros.orden !== 'relevancia'}
+            opciones={ORDENES.map(({ valor, etiqueta }) => ({ valor, etiqueta }))}
+            onCambiar={ordenar}
+          />
+        </ScrollView>
       </View>
 
       {/* Lista */}
-      <FlatList
-        data={paseadoresFiltrados}
+      <FlatList<Celda>
+        data={filtrados.length > 0 ? completarGrilla(filtrados, columnas) : []}
         keyExtractor={(item) => item.id}
         numColumns={columnas}
         key={`grid-${columnas}`} // Requerido por FlatList al cambiar columnas
         columnWrapperStyle={columnas > 1 ? { gap: spacing.md } : undefined}
         contentContainerStyle={[styles.lista, { gap: spacing.md }]}
         ListHeaderComponent={
-          <Text style={styles.encabezado}>{resumenFiltros()}</Text>
+          <View style={styles.encabezadoFila}>
+            <Text style={styles.encabezado}>{resumenFiltros()}</Text>
+            {filtrosActivos && (
+              <Pressable
+                onPress={limpiar}
+                accessibilityRole="button"
+                accessibilityLabel="Limpiar todos los filtros"
+                hitSlop={8}
+              >
+                <Text style={styles.limpiarLink}>Limpiar filtros</Text>
+              </Pressable>
+            )}
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.sinResultados}>
@@ -224,7 +160,7 @@ export default function ListaPaseadores() {
               No hay paseadores con los filtros seleccionados.
             </Text>
             <TouchableOpacity
-              onPress={limpiarFiltros}
+              onPress={limpiar}
               style={styles.limpiarBtnInline}
               accessibilityRole="button"
               accessibilityLabel="Limpiar todos los filtros"
@@ -233,14 +169,20 @@ export default function ListaPaseadores() {
             </TouchableOpacity>
           </View>
         }
-        renderItem={({ item }) => (
-          <PaseadorCard
-            paseador={item}
-            onPress={() => router.push(`/paseadores/${item.id}`)}
-          />
-        )}
+        renderItem={({ item, index }) =>
+          'relleno' in item ? (
+            <View style={styles.celda} />
+          ) : (
+            <Aparecer style={styles.celda} retraso={Math.min(index, 8) * 60}>
+              <PaseadorCard
+                paseador={item}
+                onPress={() => router.push(`/paseadores/${item.id}`)}
+              />
+            </Aparecer>
+          )
+        }
         ListFooterComponent={
-          paseadoresFiltrados.length > 0 ? (
+          filtrados.length > 0 ? (
             <View style={styles.footerSimple}>
               <Text style={styles.footerTexto}>
                 WalkPets © 2026 - Todos los derechos reservados
@@ -282,78 +224,51 @@ const styles = StyleSheet.create({
   filtrosWrap: {
     backgroundColor: colors.blanco,
     borderBottomWidth: 1,
-    borderBottomColor: colors.grisClaro,
-    paddingVertical: spacing.md - 4,
+    borderBottomColor: colors.linea,
   },
-  filtrosInner: {
-    width: '100%',
-    maxWidth: 1200,
-    alignSelf: 'center',
-    paddingHorizontal: spacing.lg,
+  filtrosFila: {
     gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    flexGrow: 1,
+    justifyContent: 'center',
   },
-  filtrosHeader: {
+  pildora: {
+    paddingHorizontal: spacing.md - 2,
+    paddingVertical: spacing.xs + 3,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.lineaFuerte,
+    backgroundColor: colors.blanco,
+  },
+  pildoraActiva: {
+    backgroundColor: colors.verdeOscuro,
+    borderColor: colors.verdeOscuro,
+  },
+  pildoraPresionada: {
+    opacity: 0.75,
+  },
+  pildoraTexto: {
+    fontSize: fonts.sizes.sm,
+    fontWeight: fonts.pesos.medio,
+    color: colors.negro,
+  },
+  pildoraTextoActiva: {
+    color: colors.blanco,
+  },
+  encabezadoFila: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  filtrosTitulo: {
+  limpiarLink: {
     fontSize: fonts.sizes.sm,
-    fontWeight: '800',
-    color: colors.negro,
-    letterSpacing: 0.2,
-  },
-  filtrosScroll: {
-    gap: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  filtroGrupoLabel: {
-    fontSize: fonts.sizes.xs,
-    fontWeight: '700',
-    color: colors.grisOscuro,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginRight: 2,
-  },
-  chip: {
-    paddingHorizontal: spacing.md - 2,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.grisMedio,
-    backgroundColor: colors.blanco,
-  },
-  chipActivo: {
-    backgroundColor: colors.verdeOscuro,
-    borderColor: colors.verdeOscuro,
-  },
-  chipTexto: {
-    fontSize: fonts.sizes.sm,
-    color: colors.grisOscuro,
-    fontWeight: '600',
-  },
-  chipTextoActivo: {
-    color: colors.blanco,
-  },
-  separador: {
-    width: 1,
-    height: 20,
-    backgroundColor: colors.grisClaro,
-    marginHorizontal: spacing.xs,
-  },
-  limpiarBtn: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md - 2,
-    borderRadius: radius.full,
-    backgroundColor: colors.verdePastel,
-  },
-  limpiarTexto: {
-    fontSize: fonts.sizes.xs + 1,
-    color: colors.verdeOscuro,
-    fontWeight: '700',
+    fontWeight: fonts.pesos.semi,
+    color: colors.verde,
+    textDecorationLine: 'underline',
   },
 
   // Lista
@@ -365,11 +280,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   encabezado: {
+    flexShrink: 1,
     fontSize: fonts.sizes.sm,
     color: colors.grisOscuro,
-    marginBottom: spacing.md,
     fontWeight: '600',
   },
+
+  celda: { flex: 1 },
 
   // Sin resultados
   sinResultados: {

@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
@@ -9,14 +10,16 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { EsFotoPerfil } from '../../common/foto-perfil';
+import { Certificaciones, RedesSocialesDto } from '../../common/perfil-extra';
 import { CIUDADES, Ciudad } from '../../constants/ciudades';
 
 // Datos del perfil público de un paseador/cuidador.
 export class PerfilPaseadorDto {
   @IsOptional()
-  @IsString()
-  @MaxLength(500)
+  @EsFotoPerfil()
   fotoUrl?: string;
 
   @IsIn(CIUDADES, { message: 'La ciudad debe ser Cipolletti o Neuquén.' })
@@ -45,4 +48,22 @@ export class PerfilPaseadorDto {
   @IsOptional()
   @IsBoolean()
   disponible?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RedesSocialesDto)
+  redes?: RedesSocialesDto;
+
+  // Permisos y certificaciones declarados (ej. "Habilitación municipal").
+  @Certificaciones()
+  certificaciones?: string[];
+}
+
+// Edición del perfil propio desde el panel: todos los campos son opcionales y
+// además se puede cambiar el teléfono de contacto.
+export class ActualizarPerfilPaseadorDto extends PartialType(PerfilPaseadorDto) {
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  telefono?: string;
 }

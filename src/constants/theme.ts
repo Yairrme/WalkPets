@@ -29,6 +29,15 @@ export const colors = {
   exitoClaro: '#E8F0D8',
   advertencia: '#F6AD55',
 
+  // Bordes finos: reemplazan a las sombras como forma de separar superficies
+  linea: 'rgba(31, 46, 26, 0.08)',
+  lineaFuerte: 'rgba(31, 46, 26, 0.16)',
+
+  // Texto y bordes sobre fondos oscuros (header)
+  blancoSuave: 'rgba(255, 255, 255, 0.72)',
+  blancoLinea: 'rgba(255, 255, 255, 0.14)',
+  blancoVelo: 'rgba(255, 255, 255, 0.08)',
+
   // Marca externa
   whatsapp: '#25D366',
 };
@@ -45,7 +54,19 @@ export const fonts = {
     xxl: 28,
     xxxl: 36,
   },
-};
+  // Pesos contenidos: los títulos se apoyan en el tamaño y el tracking, no en el negrita.
+  pesos: {
+    regular: '400',
+    medio: '500',
+    semi: '600',
+  },
+  // Tracking negativo en títulos grandes (estilo editorial). Nunca en texto de cuerpo.
+  tracking: {
+    display: -1.8, // 36-40px
+    titulo: -0.8, // 28-32px
+    subtitulo: -0.4, // 18-22px
+  },
+} as const;
 
 export const spacing = {
   xs: 4,
@@ -56,6 +77,7 @@ export const spacing = {
   xxl: 48,
 };
 
+// Inputs 8 · tarjetas 16 · imágenes y paneles 24 · botones y badges en píldora.
 export const radius = {
   sm: 8,
   md: 12,
@@ -64,19 +86,19 @@ export const radius = {
   full: 999,
 };
 
+// Casi sin sombras: la elevación se arma con un borde fino.
 export const shadows = {
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.linea,
   },
   elevada: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: colors.lineaFuerte,
+    shadowColor: colors.verdeOscuro,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
 };

@@ -9,6 +9,11 @@ describe('normalizarTelefono (backend)', () => {
     expect(normalizarTelefono('(299) 412-3456')).toBe('5492994123456');
   });
 
+  it('completa la característica 299 en números locales', () => {
+    expect(normalizarTelefono('4123456')).toBe('5492994123456');
+    expect(normalizarTelefono('15 4123456')).toBe('5492994123456');
+  });
+
   it('rechaza teléfonos vacíos o inválidos', () => {
     expect(normalizarTelefono('')).toBeNull();
     expect(normalizarTelefono('123')).toBeNull();

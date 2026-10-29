@@ -21,5 +21,9 @@ module.exports = defineConfig([
         test: 'readonly',
       },
     },
+    // Los tests usan require() para recargar módulos tras jest.resetModules().
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
   },
 ]);

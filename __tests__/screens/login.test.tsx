@@ -15,11 +15,6 @@ jest.mock('../../src/services/auth.service', () => ({
   registrarCuentaCliente: jest.fn(),
   obtenerSesionActual: jest.fn(async () => null),
   cerrarSesion: jest.fn(async () => undefined),
-  esModoDemo: () => true,
-  CREDENCIALES_DEMO: {
-    cliente: { email: 'cliente@walkpets.demo', password: 'demo1234' },
-    paseador: { email: 'paseador@walkpets.demo', password: 'demo1234' },
-  },
 }));
 
 const mockIniciarSesion = iniciarSesion as jest.MockedFunction<typeof iniciarSesion>;
@@ -129,7 +124,7 @@ describe('LoginScreen', () => {
       'secreto123'
     );
     fireEvent.changeText(
-      screen.getByPlaceholderText('Ej: +54 299 4123456'),
+      screen.getByPlaceholderText('Ej: 4123456 o 299 4123456'),
       '+54 299 4123456'
     );
     fireEvent.press(screen.getByText('Crear mi cuenta'));
@@ -161,23 +156,20 @@ describe('LoginScreen', () => {
       'secreto123'
     );
     fireEvent.changeText(
-      screen.getByPlaceholderText('Ej: +54 299 4123456'),
+      screen.getByPlaceholderText('Ej: 4123456 o 299 4123456'),
       '123'
     );
     fireEvent.press(screen.getByText('Crear mi cuenta'));
 
     expect(
-      screen.getByText('Ingresá un teléfono válido (ej. +54 299 4123456) o dejalo vacío.')
+      screen.getByText('Ingresá un teléfono válido (ej. 4123456 o 299 4123456) o dejalo vacío.')
     ).toBeTruthy();
     expect(mockRegistrar).not.toHaveBeenCalled();
   });
 
-  it('ofrece credenciales de demostración en modo mock', () => {
+  it('no ofrece cuentas de demostración', () => {
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByLabelText('Completar credenciales de paseador de demostración'));
-
-    expect(screen.getByDisplayValue('paseador@walkpets.demo')).toBeTruthy();
-    expect(screen.getByDisplayValue('demo1234')).toBeTruthy();
+    expect(screen.queryByText(/demostración/i)).toBeNull();
   });
 });

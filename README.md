@@ -28,9 +28,9 @@ El repositorio incluye la app móvil/web (Expo + React Native) y una API REST pr
 - Clientes autenticados pueden publicar reseñas; paseadores autenticados pueden consultar las reseñas de su perfil.
 - Estados de interfaz: carga, error, vacío, sin resultados y reintento.
 - Backend con autenticación JWT, roles, validación de DTOs, Swagger y persistencia en MongoDB.
-- Dos fuentes de datos: **mock** (por defecto, sin backend) y **api** (backend real).
+- Dos fuentes de datos: **api** (backend real, la versión funcional) y **mock** (en memoria, vacío al iniciar; para desarrollo y tests).
 
-> El flujo de reserva de turnos **no forma parte del producto actual**. Quedan archivos legados sin uso; ver `AGENTS.md`.
+> El flujo de reserva de turnos **no forma parte del producto actual**.
 
 ---
 
@@ -80,25 +80,10 @@ npm start
 
 Comprobá la API en http://localhost:3000/api/health y la documentación en http://localhost:3000/api/docs.
 
-### 3. Datos de demostración
+### 3. Datos
 
-Con `backend/.env` configurado y `SEED_PASSWORD` definido:
-
-```bash
-cd backend
-npm run seed
-```
-
-Crea (si no existen) las cuentas demo con la contraseña indicada:
-
-| Rol | Email |
-|---|---|
-| Cliente | `cliente@walkpets.demo` |
-| Paseador | `paseador@walkpets.demo` (Lucía, Cipolletti) |
-| Paseador | `mateo@walkpets.demo` (Mateo, Cipolletti) |
-| Paseador | `santiago@walkpets.demo` (Santiago, Neuquén) |
-
-Es idempotente y no borra datos. En modo mock las cuentas de cliente y de Lucía existen con contraseña `demo1234`, y la pantalla de login muestra botones de acceso rápido.
+No hay datos ni cuentas de prueba: la app arranca vacía. Registrá tus paseadores desde
+`/paseadores/registro` y tus clientes desde `/login` (pestaña "Crear cuenta").
 
 ---
 
@@ -123,7 +108,6 @@ Las variables `EXPO_PUBLIC_*` se embeben en el bundle: **nunca** pongas secretos
 | `JWT_EXPIRES_IN` | No | Expiración del token (por defecto `7d`). |
 | `PORT` | No | Puerto HTTP (por defecto `3000`). |
 | `CORS_ORIGIN` | No | Orígenes permitidos separados por coma; vacío = todos. |
-| `SEED_PASSWORD` | Solo seed | Contraseña de las cuentas demo. |
 
 `.env` está gitignoreado; solo se versiona `.env.example`.
 
@@ -149,8 +133,7 @@ WalkPets/
 │   └── paseadores/
 │       ├── index.tsx           Listado y filtros
 │       ├── [id].tsx            Perfil, contacto y reseña
-│       ├── registro.tsx        Alta de paseador
-│       └── reserva.tsx         Legado, sin enlaces
+│       └── registro.tsx        Alta de paseador
 ├── components/                 UI reutilizable
 ├── src/
 │   ├── config/api.ts           Fuente de datos y URL
@@ -161,7 +144,7 @@ WalkPets/
 │   └── utils/                  Normalización de teléfono
 ├── __tests__/                  Tests del frontend
 ├── backend/                    API NestJS independiente
-│   ├── src/                    Módulos, esquemas, guards, seed
+│   ├── src/                    Módulos, esquemas, guards
 │   ├── test/                   Unitarios + E2E
 │   └── .env.example
 ├── docs/                       Especificaciones, arquitectura y pruebas
@@ -196,7 +179,6 @@ npm test               # jest con MongoDB efímera
 npm run test:coverage
 npm run build          # nest build
 npm run verify         # typecheck + test + build
-npm run seed           # datos demo; requiere SEED_PASSWORD
 ```
 
 En Windows con PowerShell bloqueado, usá `npm.cmd` y `npx.cmd`.
@@ -270,7 +252,7 @@ No hay CI configurado.
 - No se valida que el autor de una reseña haya contratado al paseador.
 - Sin paginación ni búsqueda por texto.
 - Sin despliegue ni monitoreo.
-- El flujo de reserva de turnos es legado y no está enlazado en la UI.
+- El flujo de reserva de turnos se eliminó y no forma parte del producto.
 
 ---
 

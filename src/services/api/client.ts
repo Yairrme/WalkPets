@@ -45,7 +45,10 @@ function extraerMensaje(payload: unknown): { mensaje: string; detalles?: string[
 
 export async function apiFetch<T>(path: string, opciones: Opciones = {}): Promise<T> {
   if (!API_URL) {
-    throw new ApiError('La API no está configurada (EXPO_PUBLIC_API_URL).', 0);
+    throw new ApiError(
+      'Falta configurar EXPO_PUBLIC_API_URL (ej. http://localhost:3000/api) en el .env y reiniciar Expo.',
+      0
+    );
   }
 
   const controller = new AbortController();

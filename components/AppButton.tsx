@@ -11,7 +11,6 @@ import {
   colors,
   fonts,
   radius,
-  shadows,
   spacing,
 } from "../src/constants/theme";
 
@@ -117,7 +116,6 @@ const styles = StyleSheet.create({
   primario: {
     backgroundColor: colors.verde,
     borderColor: colors.verde,
-    ...shadows.card,
   },
   primarioHover: {
     backgroundColor: colors.verdeOscuro,

@@ -99,7 +99,8 @@ const styles = StyleSheet.create({
   icono: { fontSize: 38 },
   titulo: {
     fontSize: fonts.sizes.xl,
-    fontWeight: '800',
+    fontWeight: fonts.pesos.semi,
+    letterSpacing: fonts.tracking.subtitulo,
     color: colors.negro,
     textAlign: 'center',
   },

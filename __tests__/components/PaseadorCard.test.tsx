@@ -24,12 +24,19 @@ describe('PaseadorCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('usa una imagen de respaldo cuando no hay foto', () => {
-    const { UNSAFE_getByType } = render(
-      <PaseadorCard paseador={{ ...paseadorCipolletti, foto: '' }} onPress={jest.fn()} />
+  it('muestra las iniciales cuando no hay foto', () => {
+    render(<PaseadorCard paseador={{ ...paseadorCipolletti, foto: '' }} onPress={jest.fn()} />);
+
+    expect(screen.getByLabelText('Sin foto de Lucía Fernández')).toBeTruthy();
+    expect(screen.getByText('LF')).toBeTruthy();
+  });
+
+  it('muestra el ícono genérico elegido en el registro', () => {
+    const { UNSAFE_queryByType } = render(
+      <PaseadorCard paseador={{ ...paseadorCipolletti, foto: 'avatar:hombre' }} onPress={jest.fn()} />
     );
 
-    const imagen = UNSAFE_getByType(Image);
-    expect(imagen.props.source.uri).toContain('blank-profile-picture');
+    expect(screen.getByLabelText('Avatar genérico de Lucía Fernández')).toBeTruthy();
+    expect(UNSAFE_queryByType(Image)).toBeNull();
   });
 });

@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PASEADORES_MOCK } from '../../src/data/paseadores.mock';
 import { getPaseadorById } from '../../src/services/paseadores.service';
 import { crearResena, getMisResenas } from '../../src/services/resenas.service';
 import { guardarSesion } from '../../src/services/sesion.service';
+import { paseadores } from '../fixtures/paseadores';
 
 const sesionCliente = {
   token: 'token-cliente',
@@ -17,7 +19,7 @@ const sesionCliente = {
 const sesionPaseador = {
   token: 'token-paseador',
   usuario: {
-    id: 'demo-paseador',
+    id: 'paseador-1',
     nombre: 'Lucía',
     apellido: 'Fernández',
     email: 'paseador@walkpets.demo',
@@ -29,6 +31,16 @@ describe('resenas.service (modo mock)', () => {
   beforeEach(async () => {
     jest.useFakeTimers();
     await AsyncStorage.clear();
+    // El mock empieza vacío: cargamos los perfiles de ejemplo de las pruebas.
+    // Lucía (id 1) pertenece a la sesión de paseador.
+    PASEADORES_MOCK.splice(
+      0,
+      PASEADORES_MOCK.length,
+      ...paseadores.map((p) => ({
+        ...structuredClone(p),
+        usuarioId: p.id === '1' ? 'paseador-1' : `otro-${p.id}`,
+      }))
+    );
   });
 
   afterEach(() => {
@@ -68,6 +80,17 @@ describe('resenas.service (modo mock)', () => {
     expect(paseador?.resenas[0].texto).toBe('Paseo puntual y con fotos.');
     expect(paseador?.cantidadResenas).toBe(paseador?.resenas.length);
     expect(paseador?.calificacion).toBeGreaterThan(0);
+  });
+
+  it('rechaza una segunda reseña del mismo cliente al mismo paseador', async () => {
+    await guardarSesion(sesionCliente);
+    const datos = { mascota: 'Toby', texto: 'Paseo puntual y con fotos.', calificacion: 5 };
+
+    await crearResena('2', datos);
+
+    await expect(crearResena('2', { ...datos, calificacion: 1 })).rejects.toThrow(
+      'Ya dejaste una reseña para este paseador.'
+    );
   });
 
   it('devuelve las reseñas del paseador autenticado', async () => {

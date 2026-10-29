@@ -1,3 +1,6 @@
+// Las pruebas usan el repositorio en memoria salvo que mockeen la configuración.
+process.env.EXPO_PUBLIC_DATA_SOURCE = 'mock';
+
 // Almacenamiento en memoria para las pruebas. Evita depender del módulo nativo.
 jest.mock('@react-native-async-storage/async-storage', () => {
   let almacenamiento: Record<string, string> = {};

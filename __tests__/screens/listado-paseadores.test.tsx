@@ -16,13 +16,25 @@ jest.mock('../../src/services/paseadores.service', () => ({
 const mockGetPaseadores = getPaseadores as jest.MockedFunction<typeof getPaseadores>;
 const mockPush = router.push as jest.Mock;
 
+// Abre la píldora de un filtro y elige una opción del menú.
+function elegir(filtro: string, opcion: string) {
+  fireEvent.press(screen.getByLabelText(new RegExp(`^${filtro}:`)));
+  fireEvent.press(screen.getByLabelText(`${filtro} ${opcion}`));
+}
+
+async function renderizarListado(datos: Paseador[] = paseadores) {
+  mockGetPaseadores.mockResolvedValue(datos);
+  render(<ListaPaseadores />);
+  await screen.findByText('Paseador Lucía Fernández');
+}
+
 describe('ListaPaseadores', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('muestra el estado de carga antes de resolver el servicio', () => {
-    mockGetPaseadores.mockReturnValue(new Promise<Paseador[]>(() => {}));
+    mockGetPaseadores.mockReturnValue(new Promise(() => undefined));
 
     render(<ListaPaseadores />);
 
@@ -30,187 +42,125 @@ describe('ListaPaseadores', () => {
   });
 
   it('muestra el listado de paseadores y el contador general', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-
-    expect(await screen.findByText('Paseador Lucía Fernández')).toBeTruthy();
     expect(screen.getByText('Paseador Mateo Torres')).toBeTruthy();
     expect(screen.getByText('Paseador Santiago Morales')).toBeTruthy();
     expect(screen.getByText('3 de 3 paseadores')).toBeTruthy();
   });
 
+  it('los filtros ocupan una sola línea de píldoras', async () => {
+    await renderizarListado();
+
+    expect(screen.getByLabelText(/^Ciudad:/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Barrio:/)).toBeTruthy();
+    expect(screen.getByLabelText('Solo paseadores disponibles')).toBeTruthy();
+    expect(screen.getByLabelText(/^Ordenar:/)).toBeTruthy();
+    // Sin filtros aplicados no hay "Limpiar".
+    expect(screen.queryByText('Limpiar filtros')).toBeNull();
+  });
+
   it('filtra por Cipolletti y muestra el encabezado con la ciudad', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
-
-    fireEvent.press(screen.getByText('🏙️ Cipolletti'));
+    elegir('Ciudad', 'Cipolletti');
 
     await waitFor(() => {
-      expect(screen.getByText('Paseador Lucía Fernández')).toBeTruthy();
       expect(screen.getByText('Paseador Mateo Torres')).toBeTruthy();
       expect(screen.queryByText('Paseador Santiago Morales')).toBeNull();
-      expect(
-        screen.getByText('2 de 3 paseadores en Cipolletti (filtrado)')
-      ).toBeTruthy();
+      expect(screen.getByText('2 de 3 paseadores en Cipolletti (filtrado)')).toBeTruthy();
     });
   });
 
-  it('filtra por Neuquén y muestra el encabezado con la ciudad', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+  it('vuelve a todas las ciudades', async () => {
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
+    elegir('Ciudad', 'Neuquén');
+    await waitFor(() => expect(screen.queryByText('Paseador Lucía Fernández')).toBeNull());
 
-    fireEvent.press(screen.getByText('🏙️ Neuquén'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Paseador Santiago Morales')).toBeTruthy();
-      expect(screen.queryByText('Paseador Lucía Fernández')).toBeNull();
-      expect(
-        screen.getByText('1 de 3 paseadores en Neuquén (filtrado)')
-      ).toBeTruthy();
-    });
+    elegir('Ciudad', 'Todas las ciudades');
+    await waitFor(() => expect(screen.getByText('3 de 3 paseadores')).toBeTruthy());
   });
 
-  it('vuelve a mostrar todas las ciudades con el chip Todas', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+  it('el menú de barrios solo ofrece barrios de la ciudad elegida', async () => {
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
+    elegir('Ciudad', 'Cipolletti');
+    fireEvent.press(screen.getByLabelText(/^Barrio:/));
 
-    fireEvent.press(screen.getByText('🏙️ Neuquén'));
-    await waitFor(() => {
-      expect(screen.queryByText('Paseador Lucía Fernández')).toBeNull();
-    });
-
-    fireEvent.press(screen.getByText('Todas'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Paseador Lucía Fernández')).toBeTruthy();
-      expect(screen.getByText('Paseador Santiago Morales')).toBeTruthy();
-      expect(screen.getByText('3 de 3 paseadores')).toBeTruthy();
-    });
+    expect(screen.getByLabelText('Barrio Villa Alberdi')).toBeTruthy();
+    expect(screen.queryByLabelText('Barrio Neuquén Centro')).toBeNull();
   });
 
-  it('no muestra barrios de otra ciudad al filtrar', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+  it('limpia el barrio si no existe en la nueva ciudad', async () => {
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
+    elegir('Barrio', 'Villa Alberdi');
+    await waitFor(() => expect(screen.getByText('1 de 3 paseadores (filtrado)')).toBeTruthy());
 
-    fireEvent.press(screen.getByText('🏙️ Cipolletti'));
-
-    await waitFor(() => {
-      expect(screen.getByText('📍 Villa Alberdi')).toBeTruthy();
-      expect(screen.queryByText('📍 Neuquén Centro')).toBeNull();
-    });
-
-    fireEvent.press(screen.getByText('🏙️ Neuquén'));
-
-    await waitFor(() => {
-      expect(screen.getByText('📍 Neuquén Centro')).toBeTruthy();
-      expect(screen.queryByText('📍 Villa Alberdi')).toBeNull();
-    });
-  });
-
-  it('limpia el barrio seleccionado si no existe en la nueva ciudad', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
-
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
-
-    fireEvent.press(screen.getByText('📍 Villa Alberdi'));
-    await waitFor(() => {
-      expect(screen.getByText('1 de 3 paseadores (filtrado)')).toBeTruthy();
-    });
-
-    fireEvent.press(screen.getByText('🏙️ Neuquén'));
-
+    elegir('Ciudad', 'Neuquén');
     await waitFor(() => {
       expect(screen.getByText('Paseador Santiago Morales')).toBeTruthy();
       expect(screen.getByText('1 de 3 paseadores en Neuquén (filtrado)')).toBeTruthy();
     });
   });
 
-  it('filtra por barrio y permite limpiar el filtro', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+  it('filtra por barrio y permite limpiar todos los filtros', async () => {
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
-
-    fireEvent.press(screen.getByText('📍 Villa Alberdi'));
-
+    elegir('Barrio', 'Villa Alberdi');
     await waitFor(() => {
-      expect(screen.getByText('Paseador Mateo Torres')).toBeTruthy();
       expect(screen.queryByText('Paseador Lucía Fernández')).toBeNull();
       expect(screen.getByText('1 de 3 paseadores (filtrado)')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByText('✕ Limpiar'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Paseador Lucía Fernández')).toBeTruthy();
-      expect(screen.getByText('3 de 3 paseadores')).toBeTruthy();
-    });
+    fireEvent.press(screen.getByText('Limpiar filtros'));
+    await waitFor(() => expect(screen.getByText('3 de 3 paseadores')).toBeTruthy());
   });
 
   it('filtra solo los paseadores disponibles', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
-
-    fireEvent.press(screen.getByText('✓ Disponibles'));
+    fireEvent.press(screen.getByLabelText('Solo paseadores disponibles'));
 
     await waitFor(() => {
-      expect(screen.getByText('Paseador Lucía Fernández')).toBeTruthy();
-      expect(screen.getByText('Paseador Mateo Torres')).toBeTruthy();
       expect(screen.queryByText('Paseador Santiago Morales')).toBeNull();
       expect(screen.getByText('2 de 3 paseadores (filtrado)')).toBeTruthy();
     });
+    expect(
+      screen.getByLabelText('Solo paseadores disponibles').props.accessibilityState
+    ).toEqual(expect.objectContaining({ selected: true }));
   });
 
-  it('combina ciudad y disponibilidad', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+  it('muestra "Sin resultados" si los filtros no coinciden', async () => {
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
-
-    fireEvent.press(screen.getByText('🏙️ Neuquén'));
-    fireEvent.press(screen.getByText('✓ Disponibles'));
+    elegir('Ciudad', 'Neuquén');
+    fireEvent.press(screen.getByLabelText('Solo paseadores disponibles'));
 
     await waitFor(() => {
       expect(screen.getByText('Sin resultados')).toBeTruthy();
-      expect(
-        screen.getByText('0 de 3 paseadores en Neuquén (filtrado)')
-      ).toBeTruthy();
+      expect(screen.getByText('0 de 3 paseadores en Neuquén (filtrado)')).toBeTruthy();
     });
   });
 
-  it('expone el estado seleccionado de los filtros de ciudad', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+  it('ordena por menor precio', async () => {
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-    await screen.findByText('Paseador Lucía Fernández');
-
-    const chipTodas = screen.getByLabelText(
-      'Mostrar paseadores de todas las ciudades'
-    );
-    expect(chipTodas.props.accessibilityState).toEqual({ selected: true });
-
-    fireEvent.press(screen.getByLabelText('Filtrar por ciudad Neuquén'));
+    elegir('Ordenar', 'Menor precio');
 
     await waitFor(() => {
-      expect(
-        screen.getByLabelText('Filtrar por ciudad Neuquén').props.accessibilityState
-      ).toEqual({ selected: true });
+      const nombres = screen
+        .getAllByText(/^Paseador /)
+        .map((nodo) => nodo.props.children.flat().join(''));
+      const precios = nombres.map(
+        (nombre) => paseadores.find((p) => nombre.includes(p.nombre))!.precioHora
+      );
+      expect(precios).toEqual([...precios].sort((a, b) => a - b));
     });
   });
 
-  it('muestra el estado vacío cuando el servicio no devuelve datos', async () => {
+  it('muestra el estado vacío cuando no hay paseadores registrados', async () => {
     mockGetPaseadores.mockResolvedValue([]);
 
     render(<ListaPaseadores />);
@@ -225,8 +175,6 @@ describe('ListaPaseadores', () => {
     render(<ListaPaseadores />);
 
     expect(await screen.findByText('Algo salió mal')).toBeTruthy();
-    expect(screen.getByText('Reintentar')).toBeTruthy();
-
     fireEvent.press(screen.getByText('Reintentar'));
 
     expect(await screen.findByText('Paseador Lucía Fernández')).toBeTruthy();
@@ -234,11 +182,9 @@ describe('ListaPaseadores', () => {
   });
 
   it('navega al perfil al tocar una tarjeta', async () => {
-    mockGetPaseadores.mockResolvedValue(paseadores);
+    await renderizarListado();
 
-    render(<ListaPaseadores />);
-
-    fireEvent.press(await screen.findByText('Paseador Lucía Fernández'));
+    fireEvent.press(screen.getByText('Paseador Lucía Fernández'));
 
     expect(mockPush).toHaveBeenCalledWith('/paseadores/1');
   });

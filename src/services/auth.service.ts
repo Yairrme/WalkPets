@@ -1,6 +1,8 @@
 import { usarApi } from '../config/api';
+import { USUARIOS_MOCK, UsuarioMock, usuarioPublico } from '../data/usuarios.mock';
 import { Rol, Sesion, Usuario } from '../types/paseador';
 import { apiFetch } from './api/client';
+import { mapUsuario, UsuarioApi } from './mappers';
 import { borrarSesionGuardada, guardarSesion, obtenerSesionGuardada } from './sesion.service';
 
 export type DatosLogin = {
@@ -21,58 +23,15 @@ type RespuestaAuth = {
   usuario: UsuarioApi;
 };
 
-type UsuarioApi = Omit<Usuario, 'telefono'> & { telefono?: string | null };
-
-// El backend devuelve `telefono: null` cuando no hay número; el frontend usa
-// `undefined` para "sin teléfono".
-function mapUsuario(usuario: UsuarioApi): Usuario {
-  return { ...usuario, telefono: usuario.telefono ?? undefined };
-}
-
-type UsuarioMock = Usuario & { password: string };
-
-// Usuarios de demostración del modo mock. No son credenciales reales y solo
-// existen en memoria cuando EXPO_PUBLIC_DATA_SOURCE no es "api".
-const USUARIOS_MOCK: UsuarioMock[] = [
-  {
-    id: 'demo-cliente',
-    nombre: 'Martina',
-    apellido: 'Gómez',
-    email: 'cliente@walkpets.demo',
-    telefono: '+5492994000001',
-    rol: 'cliente',
-    password: 'demo1234',
-  },
-  {
-    id: 'demo-paseador',
-    nombre: 'Lucía',
-    apellido: 'Fernández',
-    email: 'paseador@walkpets.demo',
-    telefono: '+5492994000002',
-    rol: 'paseador',
-    password: 'demo1234',
-  },
-];
-
-export const CREDENCIALES_DEMO = {
-  cliente: { email: 'cliente@walkpets.demo', password: 'demo1234' },
-  paseador: { email: 'paseador@walkpets.demo', password: 'demo1234' },
-};
 
 function sesionMock(usuario: Usuario): Sesion {
   return {
-    token: `demo-${usuario.id}-${Date.now()}`,
+    token: `mock-${usuario.id}-${Date.now()}`,
     usuario,
   };
 }
 
-function publico({ password: _password, ...usuario }: UsuarioMock): Usuario {
-  return usuario;
-}
 
-export function esModoDemo(): boolean {
-  return !usarApi();
-}
 
 export async function iniciarSesion({ email, password }: DatosLogin): Promise<Sesion> {
   const emailLimpio = email.trim().toLowerCase();
@@ -99,7 +58,7 @@ export async function iniciarSesion({ email, password }: DatosLogin): Promise<Se
     throw new Error('Correo o contraseña incorrectos.');
   }
 
-  const sesion = sesionMock(publico(encontrado));
+  const sesion = sesionMock(usuarioPublico(encontrado));
   await guardarSesion(sesion);
   return sesion;
 }
@@ -132,7 +91,7 @@ export async function registrarCuentaCliente(
   }
 
   const usuario: UsuarioMock = {
-    id: `demo-cliente-${USUARIOS_MOCK.length + 1}`,
+    id: `cliente-${USUARIOS_MOCK.length + 1}`,
     nombre: datos.nombre.trim(),
     apellido: datos.apellido.trim(),
     email: emailLimpio,
@@ -142,7 +101,7 @@ export async function registrarCuentaCliente(
   };
   USUARIOS_MOCK.push(usuario);
 
-  const sesion = sesionMock(publico(usuario));
+  const sesion = sesionMock(usuarioPublico(usuario));
   await guardarSesion(sesion);
   return sesion;
 }
@@ -159,15 +118,14 @@ export async function registrarCuentaPaseadorMock(datos: {
 }): Promise<Sesion> {
   const emailLimpio = datos.email.trim().toLowerCase();
 
-  const existente = USUARIOS_MOCK.find((usuario) => usuario.email === emailLimpio);
-  if (existente) {
-    const sesion = sesionMock(publico(existente));
-    await guardarSesion(sesion);
-    return sesion;
+  // Igual que el backend: un correo ya registrado no puede volver a usarse
+  // (antes devolvía la sesión de esa cuenta sin pedir su contraseña).
+  if (USUARIOS_MOCK.some((usuario) => usuario.email === emailLimpio)) {
+    throw new Error('Ya existe una cuenta con ese correo.');
   }
 
   const usuario: UsuarioMock = {
-    id: `demo-paseador-${USUARIOS_MOCK.length + 1}`,
+    id: `paseador-${USUARIOS_MOCK.length + 1}`,
     nombre: datos.nombre.trim(),
     apellido: datos.apellido.trim(),
     email: emailLimpio,
@@ -177,7 +135,7 @@ export async function registrarCuentaPaseadorMock(datos: {
   };
   USUARIOS_MOCK.push(usuario);
 
-  const sesion = sesionMock(publico(usuario));
+  const sesion = sesionMock(usuarioPublico(usuario));
   await guardarSesion(sesion);
   return sesion;
 }

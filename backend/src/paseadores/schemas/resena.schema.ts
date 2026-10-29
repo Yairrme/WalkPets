@@ -33,6 +33,8 @@ export class Resena {
 
 export const ResenaSchema = SchemaFactory.createForClass(Resena);
 ResenaSchema.index({ paseador: 1, fecha: -1 });
+// Un cliente puede reseñar a cada paseador una sola vez.
+ResenaSchema.index({ paseador: 1, autor: 1 }, { unique: true });
 
 export type ResenaLean = {
   _id: Types.ObjectId;

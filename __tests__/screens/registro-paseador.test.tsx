@@ -31,7 +31,7 @@ function completarDatosValidos() {
     'secreto123'
   );
   fireEvent.changeText(
-    screen.getByPlaceholderText('Ej: +54 299 4123456'),
+    screen.getByPlaceholderText('Ej: 4123456 o 299 4123456'),
     '+54 299 4000000'
   );
   fireEvent.press(screen.getByLabelText('Seleccionar ciudad Neuquén'));
@@ -73,7 +73,7 @@ describe('RegistroPaseador', () => {
     render(<RegistroPaseador />);
 
     fireEvent.changeText(
-      screen.getByPlaceholderText('Ej: +54 299 4123456'),
+      screen.getByPlaceholderText('Ej: 4123456 o 299 4123456'),
       '   '
     );
     enviarFormulario();
@@ -85,13 +85,13 @@ describe('RegistroPaseador', () => {
     render(<RegistroPaseador />);
 
     fireEvent.changeText(
-      screen.getByPlaceholderText('Ej: +54 299 4123456'),
+      screen.getByPlaceholderText('Ej: 4123456 o 299 4123456'),
       '123'
     );
     enviarFormulario();
 
     expect(
-      screen.getByText('Ingresá un teléfono válido (ej. +54 299 4123456)')
+      screen.getByText('Ingresá un teléfono válido (ej. 4123456 o 299 4123456)')
     ).toBeTruthy();
   });
 
@@ -162,5 +162,32 @@ describe('RegistroPaseador', () => {
         password: 'secreto123',
       })
     );
+  });
+
+  it('guarda el avatar genérico elegido como foto del perfil', async () => {
+    mockRegistrarPaseador.mockResolvedValue({ ...paseadorCipolletti, foto: 'avatar:hombre' });
+
+    render(<RegistroPaseador />);
+    completarDatosValidos();
+    fireEvent.press(screen.getByLabelText('Usar avatar de hombre'));
+
+    enviarFormulario();
+
+    expect(await screen.findByText('¡Registro Exitoso!')).toBeTruthy();
+    expect(mockRegistrarPaseador).toHaveBeenCalledWith(
+      expect.objectContaining({ foto: 'avatar:hombre' })
+    );
+  });
+
+  it('muestra el motivo real cuando el registro falla', async () => {
+    mockRegistrarPaseador.mockRejectedValue(new Error('Ya existe una cuenta con ese correo.'));
+
+    render(<RegistroPaseador />);
+    completarDatosValidos();
+
+    enviarFormulario();
+
+    expect(await screen.findByText('Ya existe una cuenta con ese correo.')).toBeTruthy();
+    expect(screen.queryByText('¡Registro Exitoso!')).toBeNull();
   });
 });

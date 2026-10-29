@@ -1,28 +1,8 @@
-import { usarApi } from '../config/api';
 import { NuevaResenaInput, Resena } from '../types/paseador';
-import { apiFetch } from './api/client';
-import { agregarResenaMock, getMisResenasMock } from './paseadores.service';
+import { repositorioResenas } from './repositorios';
 import { obtenerSesionGuardada } from './sesion.service';
 
-type ResenaApi = {
-  id: string;
-  autorNombre: string;
-  mascota: string;
-  texto: string;
-  calificacion: number;
-  fecha: string;
-};
-
-function mapResena(dto: ResenaApi): Resena {
-  return {
-    id: dto.id,
-    autor: dto.autorNombre,
-    mascota: dto.mascota,
-    texto: dto.texto,
-    calificacion: dto.calificacion,
-    fecha: dto.fecha.slice(0, 10),
-  };
-}
+// Casos de uso de reseñas: controlan sesión y rol, y delegan en el repositorio.
 
 export async function crearResena(
   paseadorId: string,
@@ -37,20 +17,7 @@ export async function crearResena(
     throw new Error('Solo los clientes pueden publicar reseñas.');
   }
 
-  if (usarApi()) {
-    const respuesta = await apiFetch<ResenaApi>(`/paseadores/${paseadorId}/resenas`, {
-      method: 'POST',
-      token: sesion.token,
-      body: datos,
-    });
-    return mapResena(respuesta);
-  }
-
-  return agregarResenaMock(
-    paseadorId,
-    datos,
-    `${sesion.usuario.nombre} ${sesion.usuario.apellido}`
-  );
+  return repositorioResenas().crear(paseadorId, datos, sesion);
 }
 
 // Reseñas recibidas por el paseador autenticado.
@@ -64,12 +31,5 @@ export async function getMisResenas(): Promise<Resena[]> {
     throw new Error('Solo los paseadores pueden consultar sus reseñas.');
   }
 
-  if (usarApi()) {
-    const respuesta = await apiFetch<ResenaApi[]>('/resenas/mias', {
-      token: sesion.token,
-    });
-    return respuesta.map(mapResena);
-  }
-
-  return getMisResenasMock(sesion.usuario.id);
+  return repositorioResenas().delPaseadorAutenticado(sesion);
 }

@@ -32,6 +32,18 @@ describe('normalizarTelefono', () => {
     expect(normalizarTelefono('(299) 412-3456')).toBe('5492994123456');
   });
 
+  it('completa la característica 299 en números locales', () => {
+    expect(normalizarTelefono('4123456')).toBe('5492994123456');
+    expect(normalizarTelefono('412-3456')).toBe('5492994123456');
+    expect(normalizarTelefono('15 4123456')).toBe('5492994123456');
+    expect(normalizarTelefono('154123456')).toBe('5492994123456');
+  });
+
+  it('respeta otras características de 10 dígitos', () => {
+    expect(normalizarTelefono('11 4123 4567')).toBe('5491141234567');
+    expect(normalizarTelefono('2944 123456')).toBe('5492944123456');
+  });
+
   it('rechaza teléfonos vacíos o demasiado cortos', () => {
     expect(normalizarTelefono('')).toBeNull();
     expect(normalizarTelefono('   ')).toBeNull();

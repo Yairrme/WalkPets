@@ -24,7 +24,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-video"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "WalkPets necesita acceder a tus fotos para que elijas tu foto de perfil de paseador.",
+          "cameraPermission": false
+        }
+      ]
     ]
   }
 }
