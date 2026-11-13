@@ -1,4 +1,5 @@
 import { REDES_VACIAS } from '../constants/perfil';
+import { ResenaAdmin, UsuarioAdmin } from '../types/admin';
 import { Paseador, RedesSociales, Resena, Usuario } from '../types/paseador';
 
 // Contrato de la API NestJS y su traducción al modelo del frontend.
@@ -66,6 +67,22 @@ export function mapPaseador(dto: PaseadorApi): Paseador {
     certificaciones: dto.certificaciones ?? [],
     esPropietario: dto.esPropietario,
   };
+}
+
+export type UsuarioAdminApi = Omit<UsuarioAdmin, 'telefono'> & { telefono: string | null };
+
+export type ResenaAdminApi = ResenaAdmin;
+
+export function mapUsuarioAdmin(dto: UsuarioAdminApi): UsuarioAdmin {
+  return {
+    ...dto,
+    telefono: dto.telefono ?? undefined,
+    creadoEn: dto.creadoEn ? dto.creadoEn.slice(0, 10) : null,
+  };
+}
+
+export function mapResenaAdmin(dto: ResenaAdminApi): ResenaAdmin {
+  return { ...dto, fecha: dto.fecha.slice(0, 10) };
 }
 
 export type UsuarioApi = Omit<Usuario, 'telefono'> & { telefono?: string | null };

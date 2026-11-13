@@ -1,3 +1,12 @@
+// ============================================================================
+// PANTALLA: /paseadores/[id] (perfil público de un paseador)
+// Muestra foto, datos, precio, disponibilidad, contacto (Llamar / WhatsApp),
+// redes y permisos declarados, y las reseñas. Un cliente con sesión puede dejar
+// UNA reseña (el backend lo garantiza con un índice único paseador + autor).
+// Los datos los trae el hook usePerfilPaseador.
+// ============================================================================
+
+import { FontAwesome } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -159,9 +168,12 @@ export default function DetallePaseador() {
         />
         <View style={styles.headerInfo}>
           <Text style={styles.nombre}>{nombreCompleto}</Text>
-          <Text style={styles.barrio}>
-            📍 {paseador.barrio}, {paseador.ciudad}
-          </Text>
+          <View style={styles.iconoFila}>
+            <FontAwesome name="map-marker" size={14} color={colors.grisOscuro} />
+            <Text style={styles.barrio}>
+              {paseador.barrio}, {paseador.ciudad}
+            </Text>
+          </View>
           <View style={styles.ratingRow}>
             <StarRating calificacion={paseador.calificacion} tamano="md" />
             <Text style={styles.resenasCantidad}>
@@ -217,7 +229,8 @@ export default function DetallePaseador() {
                 accessibilityLabel={`Llamar a ${nombreCompleto}`}
                 accessibilityHint="Abre la aplicación de teléfono con el número del paseador"
               >
-                <Text style={styles.contactoTexto}>📞 Llamar</Text>
+                <FontAwesome name="phone" size={15} color={colors.blanco} />
+                <Text style={styles.contactoTexto}>Llamar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -228,7 +241,8 @@ export default function DetallePaseador() {
                 accessibilityLabel={`Contactar a ${nombreCompleto} por WhatsApp`}
                 accessibilityHint="Abre WhatsApp con un mensaje prellenado de WalkPets"
               >
-                <Text style={styles.contactoTexto}>💬 WhatsApp</Text>
+                <FontAwesome name="whatsapp" size={16} color={colors.blanco} />
+                <Text style={styles.contactoTexto}>WhatsApp</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -322,7 +336,10 @@ export default function DetallePaseador() {
                   mostrarNumero={false}
                 />
               </View>
-              <Text style={styles.resenaMascota}>🐶 {resena.mascota}</Text>
+              <View style={styles.iconoFila}>
+                <FontAwesome name="paw" size={12} color={colors.grisOscuro} />
+                <Text style={styles.resenaMascota}>{resena.mascota}</Text>
+              </View>
               <Text style={styles.resenaTexto}>{resena.texto}</Text>
               <Text style={styles.resenaFecha}>{resena.fecha}</Text>
             </View>
@@ -376,7 +393,7 @@ export default function DetallePaseador() {
             value={mascota}
             onChangeText={setMascota}
             placeholder="Ej: Rocky"
-            placeholderTextColor={colors.grisMedio}
+            placeholderTextColor={colors.grisOscuro}
             accessibilityLabel="Nombre de tu mascota"
           />
 
@@ -386,7 +403,7 @@ export default function DetallePaseador() {
             value={textoResena}
             onChangeText={setTextoResena}
             placeholder="Contanos cómo fue el paseo..."
-            placeholderTextColor={colors.grisMedio}
+            placeholderTextColor={colors.grisOscuro}
             multiline
             accessibilityLabel="Tu experiencia con el paseador"
           />
@@ -461,6 +478,7 @@ const styles = StyleSheet.create({
   headerInfo: { flex: 1, padding: spacing.md, gap: spacing.xs, justifyContent: 'center' },
   nombre: { fontSize: fonts.sizes.xl, fontWeight: fonts.pesos.semi, letterSpacing: fonts.tracking.subtitulo, color: colors.negro },
   barrio: { fontSize: fonts.sizes.sm, color: colors.grisOscuro },
+  iconoFila: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -517,12 +535,15 @@ const styles = StyleSheet.create({
     minWidth: 130,
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
+    minHeight: 44,
     borderRadius: radius.full,
+    flexDirection: 'row',
+    gap: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   contactoTel: { backgroundColor: colors.verde },
-  contactoWhatsApp: { backgroundColor: colors.whatsapp },
+  contactoWhatsApp: { backgroundColor: colors.whatsappBoton },
   contactoTexto: { color: colors.blanco, fontWeight: '700', fontSize: fonts.sizes.sm },
   contactoSinTelefono: {
     fontSize: fonts.sizes.sm,
@@ -581,7 +602,7 @@ const styles = StyleSheet.create({
   },
   estrellasRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   estrella: { fontSize: 30, color: colors.grisMedio },
-  estrellaActiva: { color: colors.naranja },
+  estrellaActiva: { color: colors.naranjaEstrella },
   input: {
     backgroundColor: colors.grisClaro,
     borderRadius: radius.sm,

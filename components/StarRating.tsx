@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   activa: {
-    color: colors.naranja, // Color de estrella encendida
+    color: colors.naranjaEstrella, // Color de estrella encendida (≥3:1 sobre blanco)
   },
   inactiva: {
     color: colors.grisMedio, // Color de estrella apagada / vacía

@@ -1,3 +1,4 @@
+import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -97,7 +98,10 @@ export default function MisResenas() {
             <Text style={styles.resenaAutor}>{resena.autor}</Text>
             <StarRating calificacion={resena.calificacion} tamano="sm" mostrarNumero={false} />
           </View>
-          <Text style={styles.resenaMascota}>🐶 {resena.mascota}</Text>
+          <View style={styles.iconoFila}>
+            <FontAwesome name="paw" size={12} color={colors.grisOscuro} />
+            <Text style={styles.resenaMascota}>{resena.mascota}</Text>
+          </View>
           <Text style={styles.resenaTexto}>{resena.texto}</Text>
           <Text style={styles.resenaFecha}>{resena.fecha}</Text>
         </View>
@@ -152,6 +156,7 @@ const styles = StyleSheet.create({
   resenaEncabezado: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   resenaAutor: { fontSize: fonts.sizes.sm, fontWeight: '700', color: colors.negro },
   resenaMascota: { fontSize: fonts.sizes.sm, color: colors.grisOscuro },
+  iconoFila: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   resenaTexto: { fontSize: fonts.sizes.sm, color: colors.negro, lineHeight: 20 },
   resenaFecha: { fontSize: fonts.sizes.xs, color: colors.grisMedio },
 });

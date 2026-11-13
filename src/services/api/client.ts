@@ -12,6 +12,22 @@ export class ApiError extends Error {
   }
 }
 
+export const MENSAJE_SESION_VENCIDA = 'Tu sesión venció. Iniciá sesión de nuevo.';
+
+type ManejadorTokenRechazado = (token: string) => void;
+
+let alRechazarToken: ManejadorTokenRechazado | null = null;
+
+// Registra qué hacer cuando el servidor rechaza el token enviado (sesión
+// vencida o cuenta eliminada). Recibe el token rechazado para que quien
+// escucha ignore respuestas viejas. Devuelve una función para darlo de baja.
+export function registrarSesionRechazada(manejador: ManejadorTokenRechazado): () => void {
+  alRechazarToken = manejador;
+  return () => {
+    if (alRechazarToken === manejador) alRechazarToken = null;
+  };
+}
+
 type Opciones = {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
@@ -76,6 +92,13 @@ export async function apiFetch<T>(path: string, opciones: Opciones = {}): Promis
 
     const texto = await respuesta.text();
     const payload = texto ? JSON.parse(texto) : null;
+
+    // Un 401 sin token (login con datos incorrectos) conserva el mensaje del
+    // servidor; con token significa que la sesión guardada ya no sirve.
+    if (respuesta.status === 401 && opciones.token) {
+      alRechazarToken?.(opciones.token);
+      throw new ApiError(MENSAJE_SESION_VENCIDA, 401);
+    }
 
     if (!respuesta.ok) {
       const { mensaje, detalles } = extraerMensaje(payload);

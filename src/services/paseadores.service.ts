@@ -3,20 +3,20 @@ import { MAX_CERTIFICACIONES } from '../constants/perfil';
 import { CambiosPerfilPaseador, NuevoPaseadorInput, Paseador, Sesion } from '../types/paseador';
 import { limpiarRedes, validarRedes } from '../utils/redes';
 import { normalizarTelefono } from '../utils/telefono';
-import { repositorioPaseadores } from './repositorios';
+import { paseadoresApi } from './repositorios/api';
 import { guardarSesion, obtenerSesionGuardada } from './sesion.service';
 
 // Casos de uso de paseadores. Validan reglas de negocio y delegan el acceso a
-// datos en el repositorio activo (mock o API): no saben de dónde vienen los datos.
+// datos en el repositorio de la API (src/services/repositorios/api.ts).
 
 export async function getPaseadores(): Promise<Paseador[]> {
-  return repositorioPaseadores().listar();
+  return paseadoresApi.listar();
 }
 
 // Devuelve null si el paseador no existe.
 export async function getPaseadorById(id: string): Promise<Paseador | null> {
   const sesion = await obtenerSesionGuardada();
-  return repositorioPaseadores().obtener(id, sesion);
+  return paseadoresApi.obtener(id, sesion);
 }
 
 function validarDatosRegistro(datos: NuevoPaseadorInput): string {
@@ -62,14 +62,14 @@ async function sesionDePaseador(): Promise<Sesion> {
 // Crea la cuenta y el perfil del paseador, y deja la sesión iniciada.
 export async function registrarPaseador(datos: NuevoPaseadorInput): Promise<Paseador> {
   const telefono = validarDatosRegistro(datos);
-  const { paseador, sesion } = await repositorioPaseadores().registrar(normalizarExtras(datos), telefono);
+  const { paseador, sesion } = await paseadoresApi.registrar(normalizarExtras(datos), telefono);
   if (sesion) await guardarSesion(sesion);
   return paseador;
 }
 
 // Panel del paseador: su propio perfil público.
 export async function getMiPerfilPaseador(): Promise<Paseador> {
-  return repositorioPaseadores().obtenerPropio(await sesionDePaseador());
+  return paseadoresApi.obtenerPropio(await sesionDePaseador());
 }
 
 export async function actualizarMiPerfilPaseador(cambios: CambiosPerfilPaseador): Promise<Paseador> {
@@ -78,5 +78,5 @@ export async function actualizarMiPerfilPaseador(cambios: CambiosPerfilPaseador)
   if (datos.ciudad !== undefined && !esCiudad(datos.ciudad)) {
     throw new Error('La ciudad debe ser Cipolletti o Neuquén');
   }
-  return repositorioPaseadores().actualizarPropio(sesion, datos);
+  return paseadoresApi.actualizarPropio(sesion, datos);
 }

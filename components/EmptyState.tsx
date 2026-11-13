@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import React, { ComponentProps } from 'react';
+import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
 import { colors, fonts, radius, spacing } from '../src/constants/theme';
 import { AppButton } from './AppButton';
 
@@ -17,24 +18,36 @@ type Props = {
   onReintentar?: () => void; // Acción para volver a intentar (usado en 'error')
 };
 
+type Config = {
+  icono: ComponentProps<typeof FontAwesome>['name'] | null; // null = spinner
+  colorIcono: string;
+  titulo: string;
+  mensajePredeterminado: string;
+  fondoIcono: string;
+  bordeIcono: string;
+};
+
 // Diccionario de configuración con íconos, textos y colores por estado
-const CONFIG = {
+const CONFIG: Record<Props['tipo'], Config> = {
   vacio: {
-    icono: '🐾',
+    icono: 'paw',
+    colorIcono: colors.verde,
     titulo: 'Sin paseadores disponibles',
     mensajePredeterminado: 'No encontramos paseadores en tu zona por el momento.',
     fondoIcono: colors.verdePastel,
     bordeIcono: colors.verdeMenta,
   },
   error: {
-    icono: '⚠️',
+    icono: 'exclamation-triangle',
+    colorIcono: colors.naranjaTexto,
     titulo: 'Algo salió mal',
     mensajePredeterminado: 'No pudimos cargar los paseadores. Revisá tu conexión.',
     fondoIcono: colors.errorClaro,
     bordeIcono: colors.naranjaClaro,
   },
   cargando: {
-    icono: '🐕',
+    icono: null,
+    colorIcono: colors.verde,
     titulo: 'Buscando paseadores...',
     mensajePredeterminado: 'Estamos encontrando los mejores paseadores para vos.',
     fondoIcono: colors.verdePastel,
@@ -55,7 +68,11 @@ export function EmptyState({ tipo, titulo, mensaje, onReintentar }: Props) {
           { backgroundColor: config.fondoIcono, borderColor: config.bordeIcono },
         ]}
       >
-        <Text style={styles.icono}>{config.icono}</Text>
+        {config.icono ? (
+          <FontAwesome name={config.icono} size={32} color={config.colorIcono} />
+        ) : (
+          <ActivityIndicator size="large" color={config.colorIcono} />
+        )}
       </View>
 
       {/* Título principal del estado */}
@@ -91,12 +108,11 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: radius.full,
-    borderWidth: 2,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
-  icono: { fontSize: 38 },
   titulo: {
     fontSize: fonts.sizes.xl,
     fontWeight: fonts.pesos.semi,

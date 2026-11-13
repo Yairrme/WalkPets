@@ -1,3 +1,4 @@
+import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
 import {
@@ -9,17 +10,23 @@ import {
   View,
 } from 'react-native';
 import { Aparecer } from '../components/Aparecer';
+import { AppButton } from '../components/AppButton';
 import { AvatarPaseador } from '../components/AvatarPaseador';
 import { EmptyState } from '../components/EmptyState';
 import { Seccion } from '../components/formulario/Seccion';
 import { FormularioCuenta } from '../components/perfil/FormularioCuenta';
 import { FormularioPerfilPublico } from '../components/perfil/FormularioPerfilPublico';
+import { ETIQUETA_ROL, ICONO_ROL } from '../src/constants/roles';
 import { colors, fonts, radius, spacing } from '../src/constants/theme';
 import { useSesion } from '../src/context/SesionContext';
 import { useMiPerfil } from '../src/hooks/useMiPerfil';
 
-// "Mi perfil": el cliente ve y edita sus datos; el paseador además tiene su
-// panel para editar el perfil público que ven los dueños.
+// ============================================================================
+// PANTALLA: /mi-perfil
+// El cliente ve y edita sus datos de cuenta. El paseador además edita su perfil
+// público (lo que ven los dueños). El admin tiene un acceso a su panel.
+// La carga y el guardado viven en el hook useMiPerfil; acá solo se dibuja.
+// ============================================================================
 export default function MiPerfil() {
   const { cerrar } = useSesion();
   const { cuenta, perfil, estado, error, cargar, cuentaGuardada, perfilGuardado } = useMiPerfil();
@@ -36,13 +43,7 @@ export default function MiPerfil() {
     return (
       <View style={styles.centrado}>
         <Text style={styles.mensaje}>Iniciá sesión para ver y editar tu perfil.</Text>
-        <TouchableOpacity
-          style={styles.botonPrincipal}
-          onPress={() => router.push('/login')}
-          accessibilityRole="button"
-        >
-          <Text style={styles.botonPrincipalTexto}>Iniciar sesión</Text>
-        </TouchableOpacity>
+        <AppButton label="Iniciar sesión" onPress={() => router.push('/login')} />
       </View>
     );
   }
@@ -79,10 +80,17 @@ export default function MiPerfil() {
             </Text>
             <Text style={styles.email}>{cuenta.email}</Text>
             <View style={styles.rol}>
-              <Text style={styles.rolTexto}>{esPaseador ? '🦮 Paseador' : '🐕 Cliente'}</Text>
+              <FontAwesome name={ICONO_ROL[cuenta.rol]} size={12} color={colors.verde} />
+              <Text style={styles.rolTexto}>{ETIQUETA_ROL[cuenta.rol]}</Text>
             </View>
           </View>
         </Aparecer>
+
+        {cuenta.rol === 'admin' && (
+          <Aparecer retraso={60} style={styles.atajos}>
+            <Atajo etiqueta="Panel de administración" onPress={() => router.push('/admin')} />
+          </Aparecer>
+        )}
 
         {esPaseador && perfil && (
           <Aparecer retraso={60} style={styles.atajos}>
@@ -119,18 +127,12 @@ export default function MiPerfil() {
           </>
         )}
 
-        {!esPaseador && (
+        {cuenta.rol === 'cliente' && (
           <Aparecer retraso={120} style={styles.invitacion}>
             <Text style={styles.invitacionTexto}>
               ¿Buscás a alguien para pasear a tu perro?
             </Text>
-            <TouchableOpacity
-              style={styles.botonPrincipal}
-              onPress={() => router.push('/paseadores')}
-              accessibilityRole="button"
-            >
-              <Text style={styles.botonPrincipalTexto}>Buscar paseadores</Text>
-            </TouchableOpacity>
+            <AppButton label="Buscar paseadores" onPress={() => router.push('/paseadores')} />
           </Aparecer>
         )}
 
@@ -147,10 +149,17 @@ export default function MiPerfil() {
   );
 }
 
+// Acceso rápido a otra pantalla (píldora con chevron).
 function Atajo({ etiqueta, onPress }: { etiqueta: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.atajo} onPress={onPress} accessibilityRole="button">
-      <Text style={styles.atajoTexto}>{etiqueta} →</Text>
+    <TouchableOpacity
+      style={styles.atajo}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={etiqueta}
+    >
+      <Text style={styles.atajoTexto}>{etiqueta}</Text>
+      <FontAwesome name="chevron-right" size={11} color={colors.verde} />
     </TouchableOpacity>
   );
 }
@@ -204,6 +213,9 @@ const styles = StyleSheet.create({
     color: colors.grisOscuro,
   },
   rol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
     marginTop: spacing.xs,
     paddingHorizontal: spacing.sm + 2,
@@ -222,8 +234,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   atajo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
     borderRadius: radius.full,
     backgroundColor: colors.blanco,
     borderWidth: 1,
@@ -257,26 +272,16 @@ const styles = StyleSheet.create({
     fontWeight: fonts.pesos.semi,
     color: colors.verdeOscuro,
   },
-  botonPrincipal: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm + 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.verde,
-  },
-  botonPrincipalTexto: {
-    color: colors.blanco,
-    fontSize: fonts.sizes.md,
-    fontWeight: fonts.pesos.semi,
-  },
   salir: {
     alignSelf: 'center',
     marginTop: spacing.md,
-    paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
   salirTexto: {
     color: colors.error,
-    fontSize: fonts.sizes.sm,
+    fontSize: fonts.sizes.md,
     fontWeight: fonts.pesos.semi,
   },
 });

@@ -1,3 +1,4 @@
+import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
 import {
@@ -154,7 +155,7 @@ export default function ListaPaseadores() {
         }
         ListEmptyComponent={
           <View style={styles.sinResultados}>
-            <Text style={styles.sinResultadosIcono}>🔍</Text>
+            <FontAwesome name="search" size={36} color={colors.grisOscuro} style={styles.sinResultadosIcono} />
             <Text style={styles.sinResultadosTitulo}>Sin resultados</Text>
             <Text style={styles.sinResultadosTexto}>
               No hay paseadores con los filtros seleccionados.
@@ -303,7 +304,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: spacing.sm,
   },
-  sinResultadosIcono: { fontSize: 48 },
+  sinResultadosIcono: { marginBottom: spacing.xs },
   sinResultadosTitulo: {
     fontSize: fonts.sizes.lg,
     fontWeight: '700',

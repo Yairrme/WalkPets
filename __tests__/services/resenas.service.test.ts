@@ -1,118 +1,63 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PASEADORES_MOCK } from '../../src/data/paseadores.mock';
-import { getPaseadorById } from '../../src/services/paseadores.service';
 import { crearResena, getMisResenas } from '../../src/services/resenas.service';
-import { guardarSesion } from '../../src/services/sesion.service';
-import { paseadores } from '../fixtures/paseadores';
+import { borrarSesionGuardada, guardarSesion } from '../../src/services/sesion.service';
+import { API_URL_PRUEBA, respuestaJson, sesionDe, simularFetch } from '../fixtures/api';
 
-const sesionCliente = {
-  token: 'token-cliente',
-  usuario: {
-    id: 'cliente-1',
-    nombre: 'Martina',
-    apellido: 'Gómez',
-    email: 'cliente@walkpets.demo',
-    rol: 'cliente' as const,
-  },
-};
+// El servicio de reseñas controla sesión y rol antes de llamar al backend.
+// Las reglas del servidor (una reseña por cliente, sin auto-reseña, promedio)
+// se prueban en backend/test.
+jest.mock('../../src/config/api', () => ({
+  API_URL: 'http://api.walkpets.test/api',
+  API_TIMEOUT_MS: 5000,
+}));
 
-const sesionPaseador = {
-  token: 'token-paseador',
-  usuario: {
-    id: 'paseador-1',
-    nombre: 'Lucía',
-    apellido: 'Fernández',
-    email: 'paseador@walkpets.demo',
-    rol: 'paseador' as const,
-  },
-};
+const RESENA = { mascota: 'Rocky', texto: 'Muy buen paseo.', calificacion: 5 };
 
-describe('resenas.service (modo mock)', () => {
-  beforeEach(async () => {
-    jest.useFakeTimers();
-    await AsyncStorage.clear();
-    // El mock empieza vacío: cargamos los perfiles de ejemplo de las pruebas.
-    // Lucía (id 1) pertenece a la sesión de paseador.
-    PASEADORES_MOCK.splice(
-      0,
-      PASEADORES_MOCK.length,
-      ...paseadores.map((p) => ({
-        ...structuredClone(p),
-        usuarioId: p.id === '1' ? 'paseador-1' : `otro-${p.id}`,
-      }))
+describe('resenas.service', () => {
+  let fetchMock: jest.Mock;
+
+  beforeEach(() => {
+    fetchMock = simularFetch();
+  });
+
+  afterEach(async () => {
+    await borrarSesionGuardada();
+  });
+
+  it('rechaza publicar sin sesión o con sesión de paseador', async () => {
+    await expect(crearResena('1', RESENA)).rejects.toThrow('Iniciá sesión para publicar una reseña.');
+
+    await guardarSesion(sesionDe('paseador'));
+    await expect(crearResena('2', RESENA)).rejects.toThrow('Solo los clientes pueden publicar reseñas.');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('muestra el mensaje del servidor si el cliente ya dejó una reseña', async () => {
+    await guardarSesion(sesionDe('cliente'));
+    fetchMock.mockResolvedValue(
+      respuestaJson({ message: 'Ya dejaste una reseña para este paseador.' }, 409)
     );
-  });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('rechaza publicar sin sesión', async () => {
-    await expect(
-      crearResena('1', { mascota: 'Rocky', texto: 'Muy buen paseo.', calificacion: 5 })
-    ).rejects.toThrow('Iniciá sesión para publicar una reseña.');
-  });
-
-  it('rechaza publicar cuando la sesión es de paseador', async () => {
-    await guardarSesion(sesionPaseador);
-
-    await expect(
-      crearResena('2', { mascota: 'Rocky', texto: 'Muy buen paseo.', calificacion: 5 })
-    ).rejects.toThrow('Solo los clientes pueden publicar reseñas.');
-  });
-
-  it('publica una reseña como cliente y actualiza el promedio', async () => {
-    await guardarSesion(sesionCliente);
-
-    const resena = await crearResena('1', {
-      mascota: 'Toby',
-      texto: 'Paseo puntual y con fotos.',
-      calificacion: 5,
-    });
-
-    expect(resena.autor).toBe('Martina Gómez');
-    expect(resena.mascota).toBe('Toby');
-
-    const promesa = getPaseadorById('1');
-    await jest.advanceTimersByTimeAsync(500);
-    const paseador = await promesa;
-
-    expect(paseador?.resenas[0].texto).toBe('Paseo puntual y con fotos.');
-    expect(paseador?.cantidadResenas).toBe(paseador?.resenas.length);
-    expect(paseador?.calificacion).toBeGreaterThan(0);
-  });
-
-  it('rechaza una segunda reseña del mismo cliente al mismo paseador', async () => {
-    await guardarSesion(sesionCliente);
-    const datos = { mascota: 'Toby', texto: 'Paseo puntual y con fotos.', calificacion: 5 };
-
-    await crearResena('2', datos);
-
-    await expect(crearResena('2', { ...datos, calificacion: 1 })).rejects.toThrow(
-      'Ya dejaste una reseña para este paseador.'
-    );
+    await expect(crearResena('2', RESENA)).rejects.toThrow('Ya dejaste una reseña para este paseador.');
   });
 
   it('devuelve las reseñas del paseador autenticado', async () => {
-    await guardarSesion(sesionPaseador);
+    await guardarSesion(sesionDe('paseador'));
+    fetchMock.mockResolvedValue(
+      respuestaJson([
+        { id: 'r1', autorNombre: 'Martina G.', mascota: 'Toby', texto: 'Genial', calificacion: 5, fecha: '2026-10-20T12:00:00.000Z' },
+      ])
+    );
 
     const resenas = await getMisResenas();
 
-    expect(resenas.length).toBeGreaterThan(0);
-    expect(resenas[0]).toHaveProperty('autor');
+    expect(fetchMock.mock.calls[0][0]).toBe(`${API_URL_PRUEBA}/resenas/mias`);
+    expect(resenas[0]).toMatchObject({ autor: 'Martina G.', fecha: '2026-10-20' });
   });
 
-  it('rechaza consultar reseñas propias cuando la sesión es de cliente', async () => {
-    await guardarSesion(sesionCliente);
+  it('rechaza consultar reseñas propias sin sesión o como cliente', async () => {
+    await expect(getMisResenas()).rejects.toThrow('Iniciá sesión para consultar tus reseñas.');
 
-    await expect(getMisResenas()).rejects.toThrow(
-      'Solo los paseadores pueden consultar sus reseñas.'
-    );
-  });
-
-  it('rechaza consultar reseñas propias sin sesión', async () => {
-    await expect(getMisResenas()).rejects.toThrow(
-      'Iniciá sesión para consultar tus reseñas.'
-    );
+    await guardarSesion(sesionDe('cliente'));
+    await expect(getMisResenas()).rejects.toThrow('Solo los paseadores pueden consultar sus reseñas.');
   });
 });

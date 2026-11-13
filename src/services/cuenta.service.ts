@@ -1,5 +1,5 @@
 import { CambiosCuenta, Usuario } from '../types/paseador';
-import { repositorioCuenta } from './repositorios';
+import { cuentaApi } from './repositorios/api';
 import { guardarSesion, obtenerSesionGuardada } from './sesion.service';
 
 // "Mi perfil": datos de la cuenta del usuario autenticado (cliente o paseador).
@@ -11,7 +11,7 @@ async function sesionActiva() {
 }
 
 export async function getMiCuenta(): Promise<Usuario> {
-  return repositorioCuenta().obtener(await sesionActiva());
+  return cuentaApi.obtener(await sesionActiva());
 }
 
 // Guarda los cambios y actualiza la sesión, así el saludo del header y los
@@ -26,7 +26,7 @@ export async function actualizarMiCuenta(cambios: CambiosCuenta): Promise<Usuari
     throw new Error('El apellido debe tener al menos 2 letras.');
   }
 
-  const usuario = await repositorioCuenta().actualizar(sesion, {
+  const usuario = await cuentaApi.actualizar(sesion, {
     ...cambios,
     ...(cambios.nombre !== undefined ? { nombre: cambios.nombre.trim() } : {}),
     ...(cambios.apellido !== undefined ? { apellido: cambios.apellido.trim() } : {}),

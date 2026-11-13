@@ -1,8 +1,10 @@
 import { ReactNode, useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleProp, ViewStyle } from 'react-native';
+import { useMovimientoReducido } from '../src/hooks/useMovimientoReducido';
 
 // Entrada suave: el contenido sube unos píxeles mientras aparece.
 // `retraso` permite escalonar listas (ej. índice * 60 ms).
+// Con "reducir movimiento" activo, el contenido se muestra de inmediato.
 
 type Props = {
   children: ReactNode;
@@ -15,18 +17,23 @@ const usarDriverNativo = Platform.OS !== 'web';
 
 export function Aparecer({ children, retraso = 0, distancia = 14, style }: Props) {
   const progreso = useRef(new Animated.Value(0)).current;
+  const reducido = useMovimientoReducido();
 
   useEffect(() => {
+    if (reducido) {
+      progreso.setValue(1);
+      return;
+    }
     const animacion = Animated.timing(progreso, {
       toValue: 1,
       duration: 420,
       delay: retraso,
-      easing: Easing.out(Easing.cubic),
+      easing: Easing.out(Easing.exp),
       useNativeDriver: usarDriverNativo,
     });
     animacion.start();
     return () => animacion.stop();
-  }, [progreso, retraso]);
+  }, [progreso, retraso, reducido]);
 
   return (
     <Animated.View

@@ -56,7 +56,9 @@ export type NuevaResenaInput = {
   calificacion: number;
 };
 
-export type Rol = 'cliente' | 'paseador';
+// 'admin' no se elige al registrarse: la cuenta se crea en el backend con
+// `npm run crear-admin`.
+export type Rol = 'cliente' | 'paseador' | 'admin';
 
 export type Usuario = {
   id: string;

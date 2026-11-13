@@ -21,9 +21,14 @@ export const colors = {
   // Acento (estrellas, highlights)
   naranja: '#F4845F',
   naranjaClaro: '#FBD5C5',
+  // Naranja para texto (calificaciones): el naranja de marca no llega a 4.5:1 sobre blanco.
+  naranjaTexto: '#B4532F',
+  // Estrellas: el naranja de marca no llega a 3:1 sobre blanco como gráfico.
+  naranjaEstrella: '#D9673F',
 
   // Estados
-  error: '#E53E3E',
+  // Rojo oscuro: llega a 4.5:1 sobre blanco y sobre errorClaro (texto de error).
+  error: '#C53030',
   errorClaro: '#FFF5F5',
   exito: '#3D5A1E',
   exitoClaro: '#E8F0D8',
@@ -40,6 +45,8 @@ export const colors = {
 
   // Marca externa
   whatsapp: '#25D366',
+  // Fondo de botón con texto blanco (el verde oficial no da contraste para texto).
+  whatsappBoton: '#1A7F4B',
 };
 
 export const fonts = {

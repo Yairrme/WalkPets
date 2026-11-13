@@ -1,27 +1,34 @@
-import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { Entypo, FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { AppButton } from "../components/AppButton";
-import { colors, fonts, radius, shadows, spacing } from "../src/constants/theme";
+import { Campo } from "../components/formulario/Campo";
+import { ETIQUETA_ROL } from "../src/constants/roles";
+import { colors, fonts, radius, spacing } from "../src/constants/theme";
 import { useSesion } from "../src/context/SesionContext";
-import {
-  iniciarSesion,
-  registrarCuentaCliente,
-} from "../src/services/auth.service";
+import { iniciarSesion, registrarCuentaCliente } from "../src/services/auth.service";
 import { normalizarTelefono } from "../src/utils/telefono";
 
+// ============================================================================
+// PANTALLA: /login
+// Dos modos en la misma pantalla: "Ingresar" (login) y "Crear cuenta"
+// (registro de cliente). Los paseadores se registran en /paseadores/registro.
+// Si ya hay sesión, muestra un resumen con los accesos según el rol.
+// La pantalla valida lo básico; el backend vuelve a validar todo.
+// ============================================================================
+
 type Modo = "login" | "registro";
+
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginScreen() {
   const { sesion, iniciar, cerrar } = useSesion();
@@ -32,333 +39,256 @@ export default function LoginScreen() {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [verPassword, setVerPassword] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { width } = useWindowDimensions();
-  const isWide = width >= 600;
+  const esRegistro = modo === "registro";
 
-  const limpiarFormulario = () => {
+  // Al cambiar de modo se borran el error y la contraseña escrita.
+  const cambiarModo = (nuevo: Modo) => {
+    setModo(nuevo);
     setError(null);
     setPassword("");
   };
 
-  const cambiarModo = (nuevo: Modo) => {
-    setModo(nuevo);
-    limpiarFormulario();
+  // Devuelve el primer error de validación, o null si el formulario está bien.
+  const validar = (): string | null => {
+    if (!esRegistro) {
+      return email.trim() && password ? null : "Ingresá tu correo electrónico y contraseña.";
+    }
+    const faltan = [
+      !nombre.trim() && "el nombre",
+      !apellido.trim() && "el apellido",
+      !email.trim() && "el correo",
+      !password && "la contraseña",
+    ].filter(Boolean);
+    if (faltan.length) return `Completá ${faltan.join(", ")}.`;
+    if (!EMAIL_VALIDO.test(email.trim())) return "Ingresá un correo electrónico válido.";
+    if (password.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
+    if (telefono.trim() && !normalizarTelefono(telefono)) {
+      return "Ingresá un teléfono válido (ej. 4123456 o 299 4123456) o dejalo vacío.";
+    }
+    return null;
   };
 
-  const handleLogin = async () => {
-    setError(null);
-
-    if (!email.trim() || !password) {
-      setError("Ingresá tu correo electrónico y contraseña.");
-      return;
-    }
+  const enviar = async () => {
+    const problema = validar();
+    setError(problema);
+    if (problema) return;
 
     setCargando(true);
     try {
-      const nueva = await iniciarSesion({ email, password });
+      const nueva = esRegistro
+        ? await registrarCuentaCliente({
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            email,
+            password,
+            telefono: telefono.trim() ? `+${normalizarTelefono(telefono)}` : undefined,
+          })
+        : await iniciarSesion({ email, password });
       iniciar(nueva);
-      router.push("/paseadores");
+      router.push(nueva.usuario.rol === "admin" ? "/admin" : "/paseadores");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo iniciar sesión.");
+      const porDefecto = esRegistro ? "No se pudo crear la cuenta." : "No se pudo iniciar sesión.";
+      setError(e instanceof Error ? e.message : porDefecto);
     } finally {
       setCargando(false);
     }
   };
 
-  const handleRegistro = async () => {
-    setError(null);
-
-    const errores: string[] = [];
-    if (!nombre.trim()) errores.push("el nombre");
-    if (!apellido.trim()) errores.push("el apellido");
-    if (!email.trim()) errores.push("el correo");
-    if (!password) errores.push("la contraseña");
-
-    if (errores.length > 0) {
-      setError(`Completá ${errores.join(", ")}.`);
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError("Ingresá un correo electrónico válido.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
-      return;
-    }
-
-    let telefonoNormalizado: string | undefined;
-    if (telefono.trim()) {
-      const normalizado = normalizarTelefono(telefono);
-      if (!normalizado) {
-        setError("Ingresá un teléfono válido (ej. 4123456 o 299 4123456) o dejalo vacío.");
-        return;
-      }
-      telefonoNormalizado = `+${normalizado}`;
-    }
-
-    setCargando(true);
-    try {
-      const nueva = await registrarCuentaCliente({
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        email,
-        password,
-        telefono: telefonoNormalizado,
-      });
-      iniciar(nueva);
-      router.push("/paseadores");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo crear la cuenta.");
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  // Sesión activa: mostramos el resumen y las acciones disponibles por rol.
+  // ── Sesión activa: resumen y accesos según el rol ─────────────────────────
   if (sesion) {
-    const esPaseador = sesion.usuario.rol === "paseador";
-
+    const { usuario } = sesion;
     return (
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.logoCircle}>
-          <FontAwesome name="check-circle" size={36} color={colors.verde} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.icono}>
+          <FontAwesome name="check" size={28} color={colors.verde} />
         </View>
         <Text style={styles.titulo}>Sesión iniciada</Text>
         <Text style={styles.subtitulo}>
-          {sesion.usuario.nombre} {sesion.usuario.apellido} ·{" "}
-          {esPaseador ? "Paseador" : "Cliente"}
+          {usuario.nombre} {usuario.apellido} · {ETIQUETA_ROL[usuario.rol]}
         </Text>
-        <Text style={styles.sesionEmail}>{sesion.usuario.email}</Text>
+        <Text style={styles.sesionEmail}>{usuario.email}</Text>
 
         <View style={styles.sesionAcciones}>
+          {usuario.rol === "admin" && (
+            <AppButton label="Panel de administración" onPress={() => router.push("/admin")} />
+          )}
           <AppButton
             label="Ver paseadores"
+            variante={usuario.rol === "admin" ? "secundario" : "primario"}
             onPress={() => router.push("/paseadores")}
           />
-          {esPaseador && (
+          {usuario.rol === "paseador" && (
             <AppButton
               label="Mis reseñas"
               variante="secundario"
               onPress={() => router.push("/mis-resenas")}
             />
           )}
-          <TouchableOpacity
-            style={styles.logoutBtn}
+          <Pressable
+            style={styles.enlace}
             onPress={async () => {
               await cerrar();
               setEmail("");
-              setPassword("");
-              setModo("login");
+              cambiarModo("login");
             }}
             accessibilityRole="button"
             accessibilityLabel="Cerrar sesión"
           >
-            <Text style={styles.logoutTxt}>Cerrar sesión</Text>
-          </TouchableOpacity>
+            <Text style={styles.cerrarSesion}>Cerrar sesión</Text>
+          </Pressable>
         </View>
       </ScrollView>
     );
   }
 
+  // ── Formulario de ingreso / registro ──────────────────────────────────────
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, isWide && styles.scrollWide]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <View style={styles.logoCircle}>
-            <FontAwesome name="paw" size={36} color={colors.verde} />
+        <View style={styles.encabezado}>
+          <View style={styles.icono}>
+            <FontAwesome name="paw" size={28} color={colors.verde} />
           </View>
-          <Text style={styles.titulo}>
-            {modo === "login" ? "¡Bienvenido a WalkPets!" : "Creá tu cuenta"}
+          <Text style={styles.titulo} accessibilityRole="header">
+            {esRegistro ? "Creá tu cuenta" : "Ingresá a WalkPets"}
           </Text>
           <Text style={styles.subtitulo}>
-            {modo === "login"
-              ? "Ingresá para publicar reseñas y contactar a paseadores de Cipolletti y Neuquén."
-              : "Registrate como cliente para dejar reseñas de los paseadores que contrataste."}
+            {esRegistro
+              ? "Registrate como cliente para dejar reseñas de los paseadores que contrataste."
+              : "Para publicar reseñas y contactar paseadores de Cipolletti y Neuquén."}
           </Text>
         </View>
 
-        <View style={styles.switcherContainer}>
-          <TouchableOpacity
-            style={[styles.switcherBtn, modo === "login" && styles.switcherBtnActivo]}
-            onPress={() => cambiarModo("login")}
-            activeOpacity={0.9}
-            accessibilityRole="button"
-            accessibilityLabel="Iniciar sesión"
-            accessibilityState={{ selected: modo === "login" }}
-          >
-            <Text style={[styles.switcherTxt, modo === "login" && styles.switcherTxtActivo]}>
-              Ingresar
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.switcherBtn, modo === "registro" && styles.switcherBtnActivo]}
-            onPress={() => cambiarModo("registro")}
-            activeOpacity={0.9}
-            accessibilityRole="button"
-            accessibilityLabel="Crear cuenta de cliente"
-            accessibilityState={{ selected: modo === "registro" }}
-          >
-            <Text style={[styles.switcherTxt, modo === "registro" && styles.switcherTxtActivo]}>
-              Crear cuenta
-            </Text>
-          </TouchableOpacity>
+        {/* Selector de modo (control segmentado) */}
+        <View style={styles.selector}>
+          {(
+            [
+              ["login", "Ingresar", "Iniciar sesión"],
+              ["registro", "Crear cuenta", "Crear cuenta de cliente"],
+            ] as const
+          ).map(([valor, texto, etiqueta]) => (
+            <Pressable
+              key={valor}
+              style={[styles.selectorBtn, modo === valor && styles.selectorBtnActivo]}
+              onPress={() => cambiarModo(valor)}
+              accessibilityRole="button"
+              accessibilityLabel={etiqueta}
+              accessibilityState={{ selected: modo === valor }}
+            >
+              <Text style={[styles.selectorTxt, modo === valor && styles.selectorTxtActivo]}>
+                {texto}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
-        <View style={[styles.card, isWide && styles.cardWide]}>
-          <View style={styles.badgeRol}>
-            <Text style={styles.badgeRolTxt}>
-              {modo === "login" ? "Acceso a tu cuenta" : "Cuenta de cliente"}
-            </Text>
-          </View>
-
+        <View style={styles.tarjeta}>
           {error && (
-            <View style={styles.alertError}>
-              <Text style={styles.alertErrorTexto}>{error}</Text>
+            <View style={styles.alerta} accessibilityRole="alert">
+              <Text style={styles.alertaTexto}>{error}</Text>
             </View>
           )}
 
-          {modo === "registro" && (
-            <>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Nombre</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons name="person" size={20} color={colors.grisOscuro} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ej: Martina"
-                    placeholderTextColor={colors.grisMedio}
-                    value={nombre}
-                    onChangeText={setNombre}
-                    accessibilityLabel="Nombre"
-                    autoComplete="given-name"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Apellido</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons name="person-outline" size={20} color={colors.grisOscuro} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ej: Gómez"
-                    placeholderTextColor={colors.grisMedio}
-                    value={apellido}
-                    onChangeText={setApellido}
-                    accessibilityLabel="Apellido"
-                    autoComplete="family-name"
-                  />
-                </View>
-              </View>
-            </>
-          )}
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Correo electrónico</Text>
-            <View style={styles.inputWrapper}>
-              <MaterialIcons name="email" size={20} color={colors.grisOscuro} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="ejemplo@correo.com"
-                placeholderTextColor={colors.grisMedio}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                accessibilityLabel="Correo electrónico"
-                autoComplete="email"
+          {esRegistro && (
+            <View style={styles.fila}>
+              <Campo
+                etiqueta="Nombre"
+                enFila
+                placeholder="Ej: Martina"
+                value={nombre}
+                onChangeText={setNombre}
+                accessibilityLabel="Nombre"
+                autoComplete="given-name"
+              />
+              <Campo
+                etiqueta="Apellido"
+                enFila
+                placeholder="Ej: Gómez"
+                value={apellido}
+                onChangeText={setApellido}
+                accessibilityLabel="Apellido"
+                autoComplete="family-name"
               />
             </View>
-          </View>
+          )}
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.inputWrapper}>
-              <MaterialIcons name="lock" size={20} color={colors.grisOscuro} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder={modo === "registro" ? "Mínimo 8 caracteres" : "••••••••••••"}
-                placeholderTextColor={colors.grisMedio}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                accessibilityLabel="Contraseña"
-                autoComplete={modo === "registro" ? "new-password" : "current-password"}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeBtn}
+          <Campo
+            etiqueta="Correo electrónico"
+            placeholder="ejemplo@correo.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Correo electrónico"
+            autoComplete="email"
+          />
+
+          <Campo
+            etiqueta="Contraseña"
+            placeholder={esRegistro ? "Mínimo 8 caracteres" : "••••••••••••"}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!verPassword}
+            autoCapitalize="none"
+            accessibilityLabel="Contraseña"
+            autoComplete={esRegistro ? "new-password" : "current-password"}
+            accesorio={
+              <Pressable
+                onPress={() => setVerPassword((v) => !v)}
+                style={styles.ojo}
                 accessibilityRole="button"
-                accessibilityLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                accessibilityLabel={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
                 <Entypo
-                  name={showPassword ? "eye-with-line" : "eye"}
+                  name={verPassword ? "eye-with-line" : "eye"}
                   size={20}
                   color={colors.grisOscuro}
                 />
-              </TouchableOpacity>
-            </View>
-          </View>
+              </Pressable>
+            }
+          />
 
-          {modo === "registro" && (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Teléfono (opcional)</Text>
-              <View style={styles.inputWrapper}>
-                <MaterialIcons name="phone" size={20} color={colors.grisOscuro} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej: 4123456 o 299 4123456"
-                  placeholderTextColor={colors.grisMedio}
-                  value={telefono}
-                  onChangeText={setTelefono}
-                  keyboardType="phone-pad"
-                  accessibilityLabel="Teléfono (opcional)"
-                  autoComplete="tel"
-                />
-              </View>
-            </View>
+          {esRegistro && (
+            <Campo
+              etiqueta="Teléfono"
+              obligatorio={false}
+              ayuda="Opcional. Sin código de área se asume 299."
+              placeholder="Ej: 4123456 o 299 4123456"
+              value={telefono}
+              onChangeText={setTelefono}
+              keyboardType="phone-pad"
+              accessibilityLabel="Teléfono (opcional)"
+              autoComplete="tel"
+            />
           )}
 
           <AppButton
-            label={modo === "login" ? "Ingresar" : "Crear mi cuenta"}
-            onPress={modo === "login" ? handleLogin : handleRegistro}
+            label={esRegistro ? "Crear mi cuenta" : "Ingresar"}
+            onPress={enviar}
             cargando={cargando}
           />
-
         </View>
 
-        <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            <Text style={styles.footerTxt}>¿Querés ofrecer tus servicios?</Text>
-            <TouchableOpacity onPress={() => router.push("/paseadores/registro")}>
-              <Text style={styles.footerLink}>Registrate como Paseador</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.footerRow}>
-            <TouchableOpacity onPress={() => router.push("/paseadores")}>
-              <Text style={styles.footerLink}>Explorar paseadores</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.pie}>
+          <Text style={styles.pieTexto}>¿Querés ofrecer tus servicios?</Text>
+          <Pressable style={styles.enlace} onPress={() => router.push("/paseadores/registro")}>
+            <Text style={styles.enlaceTexto}>Registrate como paseador</Text>
+          </Pressable>
+          <Pressable style={styles.enlace} onPress={() => router.push("/paseadores")}>
+            <Text style={styles.enlaceTexto}>Explorar paseadores</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -375,23 +305,19 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     alignItems: "center",
   },
-  scrollWide: {
-    paddingVertical: spacing.xxl,
-  },
-  header: {
+  encabezado: {
     alignItems: "center",
     marginBottom: spacing.lg,
-    maxWidth: 500,
+    maxWidth: 440,
   },
-  logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.blanco,
+  icono: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    backgroundColor: colors.verdePastel,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.md,
-    ...shadows.card,
   },
   titulo: {
     fontSize: fonts.sizes.xxl,
@@ -406,7 +332,6 @@ const styles = StyleSheet.create({
     color: colors.grisOscuro,
     textAlign: "center",
     lineHeight: 22,
-    paddingHorizontal: spacing.sm,
   },
   sesionEmail: {
     fontSize: fonts.sizes.sm,
@@ -419,129 +344,86 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.xl,
   },
-  logoutBtn: {
-    alignItems: "center",
-    paddingVertical: spacing.md,
-  },
-  logoutTxt: {
-    fontSize: fonts.sizes.sm,
-    fontWeight: "700",
+  cerrarSesion: {
+    fontSize: fonts.sizes.md,
+    fontWeight: fonts.pesos.semi,
     color: colors.error,
   },
-  switcherContainer: {
+  selector: {
     flexDirection: "row",
     backgroundColor: colors.grisClaro,
     borderRadius: radius.full,
-    padding: 5,
-    marginBottom: spacing.xl,
+    padding: 4,
+    marginBottom: spacing.lg,
     width: "100%",
     maxWidth: 480,
-    ...shadows.card,
   },
-  switcherBtn: {
+  selectorBtn: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    minHeight: 44,
     borderRadius: radius.full,
   },
-  switcherBtnActivo: {
+  selectorBtnActivo: {
     backgroundColor: colors.verdeOscuro,
-    ...shadows.card,
   },
-  switcherTxt: {
+  selectorTxt: {
     fontSize: fonts.sizes.sm,
-    fontWeight: "700",
-    color: colors.negro,
+    fontWeight: fonts.pesos.semi,
+    color: colors.verdeOscuro,
   },
-  switcherTxtActivo: {
+  selectorTxtActivo: {
     color: colors.blanco,
   },
-  card: {
+  tarjeta: {
     backgroundColor: colors.blanco,
     borderRadius: radius.xl,
-    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.linea,
+    padding: spacing.lg,
+    gap: spacing.md,
     width: "100%",
     maxWidth: 480,
-    ...shadows.card,
-    shadowOpacity: 0.12,
   },
-  cardWide: {
-    padding: spacing.xxl,
+  fila: {
+    flexDirection: "row",
+    gap: spacing.sm,
   },
-  badgeRol: {
-    alignSelf: "center",
-    backgroundColor: colors.verdePastel,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    marginBottom: spacing.lg,
-  },
-  badgeRolTxt: {
-    fontSize: fonts.sizes.xs,
-    fontWeight: "700",
-    color: colors.verde,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  alertError: {
+  alerta: {
     backgroundColor: colors.errorClaro,
     borderColor: colors.error,
     borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
+    borderRadius: radius.sm,
+    padding: spacing.sm + 2,
   },
-  alertErrorTexto: {
+  alertaTexto: {
     color: colors.error,
     fontSize: fonts.sizes.sm,
-    fontWeight: "600",
+    fontWeight: fonts.pesos.semi,
   },
-  fieldGroup: {
-    marginBottom: spacing.lg,
-  },
-  label: {
-    fontSize: fonts.sizes.sm,
-    fontWeight: "700",
-    color: colors.negro,
-    marginBottom: spacing.xs,
-  },
-  inputWrapper: {
-    flexDirection: "row",
+  ojo: {
+    width: 44,
+    height: 44,
     alignItems: "center",
-    backgroundColor: colors.grisClaro,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderColor: "transparent",
-    paddingHorizontal: spacing.md,
-    height: 52,
+    justifyContent: "center",
+    marginRight: -spacing.sm,
   },
-  inputIcon: {
-    marginRight: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    fontSize: fonts.sizes.md,
-    color: colors.negro,
-    height: "100%",
-  },
-  eyeBtn: {
-    padding: spacing.xs,
-  },
-  footer: {
+  pie: {
     marginTop: spacing.xl,
     alignItems: "center",
-    gap: spacing.sm,
   },
-  footerRow: {
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  footerTxt: {
+  pieTexto: {
     fontSize: fonts.sizes.sm,
     color: colors.grisOscuro,
   },
-  footerLink: {
+  enlace: {
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  enlaceTexto: {
     fontSize: fonts.sizes.md,
     fontWeight: fonts.pesos.semi,
     color: colors.verde,

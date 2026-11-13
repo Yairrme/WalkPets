@@ -14,6 +14,11 @@ describe('normalizarTelefono (backend)', () => {
     expect(normalizarTelefono('15 4123456')).toBe('5492994123456');
   });
 
+  it('no confunde números locales que empiezan con 54 o 9 con prefijos', () => {
+    expect(normalizarTelefono('5412345')).toBe('5492995412345');
+    expect(normalizarTelefono('9123456')).toBe('5492999123456');
+  });
+
   it('rechaza teléfonos vacíos o inválidos', () => {
     expect(normalizarTelefono('')).toBeNull();
     expect(normalizarTelefono('123')).toBeNull();

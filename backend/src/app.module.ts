@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { CuentaModule } from './cuenta/cuenta.module';
 import { validarEntorno } from './config/env.validation';
@@ -25,6 +26,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     ResenasModule,
     AuthModule,
     CuentaModule,
+    AdminModule,
     HealthModule,
   ],
 })

@@ -16,7 +16,7 @@ const mockRegistrarPaseador = registrarPaseador as jest.MockedFunction<
 >;
 
 function enviarFormulario() {
-  fireEvent.press(screen.getByText('Crear mi Perfil de Paseador 🐾'));
+  fireEvent.press(screen.getByText('Crear mi perfil de paseador'));
 }
 
 function completarDatosValidos() {
@@ -145,7 +145,7 @@ describe('RegistroPaseador', () => {
 
     enviarFormulario();
 
-    expect(await screen.findByText('¡Registro Exitoso!')).toBeTruthy();
+    expect(await screen.findByText('¡Registro exitoso!')).toBeTruthy();
     expect(screen.getByText('Nuevo Paseador')).toBeTruthy();
     expect(
       screen.getByText(/Ya formas parte de la red de WalkPets en Neuquén/)
@@ -173,7 +173,7 @@ describe('RegistroPaseador', () => {
 
     enviarFormulario();
 
-    expect(await screen.findByText('¡Registro Exitoso!')).toBeTruthy();
+    expect(await screen.findByText('¡Registro exitoso!')).toBeTruthy();
     expect(mockRegistrarPaseador).toHaveBeenCalledWith(
       expect.objectContaining({ foto: 'avatar:hombre' })
     );
@@ -188,6 +188,6 @@ describe('RegistroPaseador', () => {
     enviarFormulario();
 
     expect(await screen.findByText('Ya existe una cuenta con ese correo.')).toBeTruthy();
-    expect(screen.queryByText('¡Registro Exitoso!')).toBeNull();
+    expect(screen.queryByText('¡Registro exitoso!')).toBeNull();
   });
 });

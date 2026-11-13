@@ -1,3 +1,7 @@
+// Persistencia de la sesión en el dispositivo (AsyncStorage).
+// Se guarda como JSON bajo una clave versionada; si el contenido está roto o
+// incompleto se ignora y la app arranca sin sesión.
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Sesion } from '../types/paseador';
 

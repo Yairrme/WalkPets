@@ -1,5 +1,5 @@
 import { NuevaResenaInput, Resena } from '../types/paseador';
-import { repositorioResenas } from './repositorios';
+import { resenasApi } from './repositorios/api';
 import { obtenerSesionGuardada } from './sesion.service';
 
 // Casos de uso de reseñas: controlan sesión y rol, y delegan en el repositorio.
@@ -17,7 +17,7 @@ export async function crearResena(
     throw new Error('Solo los clientes pueden publicar reseñas.');
   }
 
-  return repositorioResenas().crear(paseadorId, datos, sesion);
+  return resenasApi.crear(paseadorId, datos, sesion);
 }
 
 // Reseñas recibidas por el paseador autenticado.
@@ -31,5 +31,5 @@ export async function getMisResenas(): Promise<Resena[]> {
     throw new Error('Solo los paseadores pueden consultar sus reseñas.');
   }
 
-  return repositorioResenas().delPaseadorAutenticado(sesion);
+  return resenasApi.delPaseadorAutenticado(sesion);
 }

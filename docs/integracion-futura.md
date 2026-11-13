@@ -1,26 +1,20 @@
 # Integración frontend ↔ API — WalkPets
 
-> **Estado:** implementada. El frontend puede consumir el backend NestJS + MongoDB de `backend/` o seguir usando el mock en memoria.
-> **Última actualización:** 2026-10-25.
+> **Estado:** implementada. El frontend consume solo el backend NestJS + MongoDB de `backend/` (el modo mock se eliminó el 2026-11-11).
+> **Última actualización:** 2026-11-11.
 
 ---
 
 ## 1. Resumen
 
-La app funciona con dos fuentes de datos intercambiables:
+La app tiene una sola fuente de datos: la API REST NestJS + MongoDB, en `EXPO_PUBLIC_API_URL`.
 
-| Fuente | Cuándo se usa | Datos |
-|---|---|---|
-| `mock` | Por defecto. Desarrollo sin backend y tests de pantallas. | Arreglos en memoria (`PASEADORES_MOCK`, `USUARIOS_MOCK`). |
-| `api` | `EXPO_PUBLIC_DATA_SOURCE=api` **y** `EXPO_PUBLIC_API_URL` con valor. | API REST NestJS + MongoDB. |
-
-Las pantallas no saben de dónde vienen los datos: siempre llaman a los servicios de `src/services/`. El cambio de fuente se resuelve dentro de esos servicios.
+Las pantallas no llaman a `fetch`: siempre usan los servicios de `src/services/`.
 
 ```text
 Pantalla
   → src/services/paseadores.service.ts | auth.service.ts | resenas.service.ts
-      ├── usarApi() === false → mock en memoria
-      └── usarApi() === true  → src/services/api/client.ts → API NestJS → MongoDB
+  → src/services/repositorios/api.ts → src/services/api/client.ts → API NestJS → MongoDB
 ```
 
 ---
@@ -32,9 +26,6 @@ Pantalla
 Creá `.env` en la raíz (está gitignoreado) a partir de `.env.example`:
 
 ```env
-# mock (por defecto) | api
-EXPO_PUBLIC_DATA_SOURCE=mock
-
 # Base de la API, incluyendo el prefijo /api. Sin barra final.
 EXPO_PUBLIC_API_URL=http://localhost:3000/api
 
@@ -44,7 +35,8 @@ EXPO_PUBLIC_API_TIMEOUT_MS=10000
 
 - Expo solo embebe en el bundle las variables que empiezan con `EXPO_PUBLIC_`. **Nunca** pongas secretos ahí.
 - Después de cambiar `.env`, reiniciá Metro (`npm start`) para que tome los valores.
-- Si `EXPO_PUBLIC_DATA_SOURCE=api` pero `EXPO_PUBLIC_API_URL` está vacío, `usarApi()` devuelve `false` y la app sigue con el mock.
+- Si falta `EXPO_PUBLIC_API_URL`, cada request falla con un mensaje claro que pide configurarla (`apiFetch`).
+- Si la API responde `401` a una request que llevaba token (sesión vencida o cuenta eliminada), `apiFetch` lanza “Tu sesión venció. Iniciá sesión de nuevo.” y `SesionProvider` cierra la sesión local si ese token es el de la sesión vigente (un `401` tardío de un token anterior se ignora). Un `401` sin token (login fallido) conserva el mensaje del servidor.
 
 ### 2.2 Backend
 
@@ -69,15 +61,7 @@ CORS_ORIGIN=
 
 ## 3. Puesta en marcha
 
-### 3.1 Solo mock (sin backend)
-
-```powershell
-npm.cmd start
-```
-
-No hace falta MongoDB ni variables de entorno.
-
-### 3.2 Con API y MongoDB local
+### 3.1 Con API y MongoDB local
 
 Requisitos: MongoDB escuchando en `127.0.0.1:27017` y Node 20+.
 
@@ -89,7 +73,6 @@ copy .env.example .env    # completar MONGODB_URI y JWT_SECRET
 npm.cmd run start:dev     # http://localhost:3000
 
 # Terminal 2 — app
-$env:EXPO_PUBLIC_DATA_SOURCE="api"
 $env:EXPO_PUBLIC_API_URL="http://localhost:3000/api"
 npm.cmd start
 ```
@@ -103,7 +86,7 @@ curl http://localhost:3000/api/health
 
 Swagger: http://localhost:3000/api/docs
 
-### 3.3 MongoDB con Atlas
+### 3.2 MongoDB con Atlas
 
 1. Creá un cluster gratuito en MongoDB Atlas.
 2. Creá un usuario de base de datos con permiso sobre la base `walkpets`.
@@ -116,7 +99,7 @@ MONGODB_URI=mongodb+srv://<usuario>:<clave>@<cluster>/walkpets?retryWrites=true&
 
 Nunca commitees ese valor. Si una credencial se filtró, rotala en Atlas.
 
-### 3.4 Datos
+### 3.3 Datos
 
 No hay seed ni cuentas de prueba: la base arranca vacía y se completa registrando paseadores y clientes desde la app.
 
@@ -234,7 +217,7 @@ No se usan credenciales reales ni una base de producción. El E2E del backend co
 
 | Síntoma | Causa probable | Solución |
 |---|---|---|
-| La app sigue mostrando datos mock | `EXPO_PUBLIC_DATA_SOURCE` no es `api`, falta `EXPO_PUBLIC_API_URL` o Metro no se reinició. | Revisá `.env` y reiniciá `npm start`. |
+| “Falta configurar EXPO_PUBLIC_API_URL” | No está en `.env` o Metro no se reinició. | Revisá `.env` y reiniciá `npm start`. |
 | “No se pudo conectar con el servidor” en emulador Android | `localhost` apunta al emulador. | Usá `http://10.0.2.2:3000/api`. |
 | “No se pudo conectar” en celular físico | IP incorrecta o firewall. | Usá la IP LAN y permití el puerto 3000. |
 | El backend no arranca | Falta `MONGODB_URI`, `JWT_SECRET` corto o MongoDB no responde. | Leé el error de validación y verificá MongoDB. |

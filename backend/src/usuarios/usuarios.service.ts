@@ -123,6 +123,12 @@ export class UsuariosService {
     await this.modelo.findByIdAndDelete(id).exec();
   }
 
+  async cambiarPassword(id: string, password: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) return;
+    const passwordHash = await bcrypt.hash(password, RONDAS_HASH);
+    await this.modelo.updateOne({ _id: id }, { $set: { passwordHash, activo: true } }).exec();
+  }
+
   async contar(): Promise<number> {
     return this.modelo.countDocuments().exec();
   }
@@ -135,6 +141,7 @@ export class UsuariosService {
       email: documento.email,
       telefono: documento.telefono ?? null,
       rol: documento.rol,
+      activo: documento.activo ?? true,
       ciudad: documento.ciudad ?? null,
       barrio: documento.barrio ?? '',
       mascotas: documento.mascotas ?? '',

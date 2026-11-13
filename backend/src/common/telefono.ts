@@ -10,6 +10,13 @@ export function normalizarTelefono(valor: string | null | undefined): string | n
   let digitos = valor.replace(/\D/g, '');
   if (!digitos) return null;
 
+  // Número local de 7 dígitos (4123456, 5412345, 9123456): se completa la
+  // característica antes de quitar prefijos, porque un número local puede
+  // empezar con 54 o con 9 y confundirse con el código de país o de celular.
+  if (/^[2-9]\d{6}$/.test(digitos)) {
+    return `549${CARACTERISTICA_LOCAL}${digitos}`;
+  }
+
   if (digitos.startsWith('0054')) {
     digitos = digitos.slice(2);
   }

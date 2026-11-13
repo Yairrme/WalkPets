@@ -1,6 +1,6 @@
 import { Entypo, FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { ComponentProps, useState } from "react";
 import {
   Image,
   Linking,
@@ -12,36 +12,46 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { WebView } from "react-native-webview";
 import { colors, fonts, radius, shadows, spacing } from "../src/constants/theme";
+import { VideoYoutube } from "../components/VideoYoutube";
 import { AppButton } from "../components/AppButton";
 import { AppHeader } from "../components/AppHeader";
 import { Aparecer } from "../components/Aparecer";
 import { Flotar } from "../components/Flotar";
-import { UiverseSearchButton } from "../components/UiverseSearchButton";
+import { BotonBuscar } from "../components/BotonBuscar";
 
 // ============================================================================
-// ARCHIVO: index.tsx (Página de Inicio / Landing Page Hero)
-// Propósito: Pantalla principal de bienvenida (Hero) de WalkPets.
-// Cuenta con diseño 100% responsivo (se adapta entre móvil y escritorio/wide),
-// barra de navegación superior, menú móvil desplegable, panel informativo
-// "Quiénes somos", un video incrustado de YouTube (con carga diferida) y
-// botones flotantes estilo Liquid Glassmorphism en dispositivos móviles.
-//
-// Cambios respecto a la versión anterior:
-//   1. El video de YouTube ahora se carga bajo demanda (thumbnail + play),
-//      en lugar de montar el WebView apenas se abre la pantalla. Esto ahorra
-//      datos móviles y mejora el tiempo de carga inicial.
-//   2. Extracción de ID de YouTube más robusta (soporta youtu.be, ?v=, /embed/).
-//   3. Se agregó el botón secundario "Quiero ser paseador" en la barra
-//      flotante móvil (el estilo ya existía pero no se usaba).
-//   4. Etiquetas de accesibilidad (accessibilityRole/Label) en botones e
-//      imágenes interactivas.
-//   5. El punto de quiebre "isWide" se extrajo a una constante configurable.
+// PANTALLA: / (inicio)
+// Presenta WalkPets y lleva a buscar paseadores. Tiene dos diseños según el ancho:
+// - Móvil (< 600 px): logo arriba, propuesta de valor, beneficios, video y una
+//   barra fija abajo con el botón "Buscar paseadores".
+// - Ancho: texto y botones a la izquierda, logo a la derecha.
+// El video de YouTube se carga recién cuando la persona toca "play" (primero se
+// muestra solo la miniatura), así no gasta datos al abrir la pantalla.
 // ============================================================================
 
 // Punto de quiebre entre layout móvil y wide (escritorio/tablet grande)
 const WIDE_BREAKPOINT = 600;
+
+// Beneficios rápidos del hero (ícono de la familia FontAwesome + texto)
+const BENEFICIOS: { icono: ComponentProps<typeof FontAwesome>["name"]; texto: string }[] = [
+  { icono: "map-marker", texto: "Cipolletti y Neuquén" },
+  { icono: "phone", texto: "Contacto directo" },
+  { icono: "star", texto: "Reseñas reales" },
+];
+
+function ChipsBeneficios({ alineados }: { alineados?: "inicio" }) {
+  return (
+    <View style={[styles.heroChips, alineados === "inicio" && styles.heroChipsWide]}>
+      {BENEFICIOS.map((b) => (
+        <View key={b.texto} style={styles.heroChip}>
+          <FontAwesome name={b.icono} size={13} color={colors.verde} />
+          <Text style={styles.heroChipTexto}>{b.texto}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 // Logo circular de la marca
 const logo = require("../assets/Logo Walk Pets.png");
@@ -49,59 +59,14 @@ const logo = require("../assets/Logo Walk Pets.png");
 // ▶ Pegá tu URL de YouTube acá (el ID se extrae automáticamente)
 const YOUTUBE_URL = "https://www.youtube.com/watch?v=plJUSgZ0guc";
 
-// Extrae el ID de video soportando distintos formatos de URL de YouTube
-function extraerYoutubeId(url: string): string {
-  const patrones = [
-    /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
-    /(?:youtu\.be\/)([^&\n?#]+)/,
-    /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
-  ];
-  for (const patron of patrones) {
-    const match = url.match(patron);
-    if (match?.[1]) return match[1];
-  }
-  return "";
-}
-
 export default function Inicio() {
   const [mostrarQuienes, setMostrarQuienes] = useState(false);
-  const [videoIniciado, setVideoIniciado] = useState(false);
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_BREAKPOINT;
 
   // El logo se adapta al ancho disponible para no desbordar en pantallas chicas
   const logoSize = Math.min(340, Math.max(160, width - spacing.lg * 2 - 24));
   const logoSizeWide = Math.min(360, Math.max(200, width * 0.3));
-
-  const videoId = useMemo(() => extraerYoutubeId(YOUTUBE_URL), []);
-
-  // Miniatura de alta calidad provista por YouTube (no requiere red aparte de la imagen)
-  const thumbnailUrl = videoId
-    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    : null;
-
-  // HTML inline para controlar el embed al 100% y evitar videos relacionados.
-  // autoplay=1 porque el usuario ya tocó "play" en la miniatura antes de montar esto.
-  const htmlVideo = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-        <style>
-          * { margin: 0; padding: 0; background: #000; }
-          body { width: 100%; height: 100%; overflow: hidden; }
-          iframe { width: 100%; height: 100%; border: none; }
-        </style>
-      </head>
-      <body>
-        <iframe
-          src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&showinfo=0&disablekb=0"
-          allowfullscreen
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        ></iframe>
-      </body>
-    </html>
-  `;
 
   return (
     <View style={styles.pantalla}>
@@ -116,14 +81,16 @@ export default function Inicio() {
         <View style={styles.quienesPanel}>
           <View style={styles.quienesCard}>
             <TouchableOpacity
-              style={{ position: "absolute", top: 8, right: 8, padding: 8, zIndex: 10 }}
+              style={styles.quienesCerrar}
               onPress={() => setMostrarQuienes(false)}
               accessibilityRole="button"
               accessibilityLabel="Cerrar panel Quiénes somos"
             >
               <Entypo name="cross" size={24} color={colors.grisOscuro} />
             </TouchableOpacity>
-            <Text style={styles.quienesEmoji}>🐾</Text>
+            <View style={styles.quienesIcono}>
+              <FontAwesome name="paw" size={22} color={colors.verde} />
+            </View>
             <Text style={styles.quienesTitulo}>Sobre WalkPets</Text>
             <Text style={styles.quienesTexto}>
               WalkPets es una plataforma que conecta dueños de mascotas con
@@ -221,30 +188,14 @@ export default function Inicio() {
               </Aparecer>
 
               <Aparecer retraso={120} style={styles.heroTextosMobile}>
-              {/* Bajada de marca */}
-              <Text style={styles.heroEyebrow}>PASEADORES DE CONFIANZA</Text>
-
-              {/* Descripción */}
-              <Text style={styles.heroDescripcion}>
-                Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}
-                confianza
+              {/* Propuesta de valor: el logo ya dice la marca, esto dice qué hace */}
+              <Text style={styles.heroLead} accessibilityRole="header">
+                Conectamos a dueños de mascotas con paseadores de confianza
               </Text>
               </Aparecer>
 
               {/* Beneficios rápidos */}
-              <Aparecer retraso={220}>
-              <View style={styles.heroChips}>
-                <View style={styles.heroChip}>
-                  <Text style={styles.heroChipTexto}>📍 Cipolletti y Neuquén</Text>
-                </View>
-                <View style={styles.heroChip}>
-                  <Text style={styles.heroChipTexto}>📞 Contacto directo</Text>
-                </View>
-                <View style={styles.heroChip}>
-                  <Text style={styles.heroChipTexto}>⭐ Reseñas reales</Text>
-                </View>
-              </View>
-              </Aparecer>
+              <ChipsBeneficios />
 
               {/* =====================================================================
                   SECCIÓN DE VIDEO (carga diferida: miniatura → WebView al tocar)
@@ -252,7 +203,7 @@ export default function Inicio() {
               <View style={styles.videoSection}>
                 <View style={styles.videoHeader}>
                   <Text style={styles.videoTitulo}>
-                    🐾 ¿Por qué es importante pasear a tu mascota?
+                    ¿Por qué es importante pasear a tu mascota?
                   </Text>
                   <Text style={styles.videoSubtitulo}>
                     Un paseo diario mejora la salud física y mental de tu
@@ -260,44 +211,10 @@ export default function Inicio() {
                   </Text>
                 </View>
                 <View style={styles.videoContainer}>
-                  {videoIniciado ? (
-                    <WebView
-                      originWhitelist={["*"]}
-                      source={{ html: htmlVideo }}
-                      style={styles.video}
-                      allowsFullscreenVideo
-                      javaScriptEnabled
-                      domStorageEnabled
-                      mediaPlaybackRequiresUserAction={false}
-                      scrollEnabled={false}
-                      bounces={false}
-                    />
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.videoThumbWrapper}
-                      activeOpacity={0.9}
-                      onPress={() => setVideoIniciado(true)}
-                      accessibilityRole="button"
-                      accessibilityLabel="Reproducir video"
-                    >
-                      {thumbnailUrl && (
-                        <Image
-                          source={{ uri: thumbnailUrl }}
-                          style={styles.videoThumbImg}
-                          resizeMode="cover"
-                        />
-                      )}
-                      <View style={styles.videoPlayOverlay}>
-                        <View style={styles.videoPlayCircle}>
-                          <Entypo
-                            name="controller-play"
-                            size={28}
-                            color={colors.blanco}
-                          />
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  )}
+                  <VideoYoutube
+                    url={YOUTUBE_URL}
+                    titulo="¿Por qué es importante pasear a tu mascota?"
+                  />
                 </View>
               </View>
             </View>
@@ -305,30 +222,19 @@ export default function Inicio() {
             /* ── MODO WIDE: columna izquierda + logo derecha ── */
             <>
               <Aparecer style={styles.heroLeftWide}>
-                <View style={styles.heroTituloRow}>
+                <View style={styles.heroTituloRow} accessibilityRole="header">
                   <Text style={styles.heroTituloWalk}>Walk </Text>
                   <Text style={styles.heroTituloPets}>Pets</Text>
                 </View>
                 <Text style={[styles.heroDescripcion, styles.heroDescripcionWide]}>
-                  Conectamos a dueños de{"\n"}mascotas con paseadores de{"\n"}
-                  confianza
+                  Conectamos a dueños de mascotas con paseadores de confianza
                 </Text>
 
                 {/* Beneficios rápidos */}
-                <View style={[styles.heroChips, styles.heroChipsWide]}>
-                  <View style={styles.heroChip}>
-                    <Text style={styles.heroChipTexto}>📍 Cipolletti y Neuquén</Text>
-                  </View>
-                  <View style={styles.heroChip}>
-                    <Text style={styles.heroChipTexto}>📞 Contacto directo</Text>
-                  </View>
-                  <View style={styles.heroChip}>
-                    <Text style={styles.heroChipTexto}>⭐ Reseñas reales</Text>
-                  </View>
-                </View>
+                <ChipsBeneficios alineados="inicio" />
 
                 <View style={styles.ctaContainerWide}>
-                  <UiverseSearchButton onPress={() => router.push("/paseadores")} />
+                  <BotonBuscar onPress={() => router.push("/paseadores")} />
                   <AppButton
                     label="Quiero ser paseador"
                     variante="outline"
@@ -365,11 +271,11 @@ export default function Inicio() {
       </ScrollView>
 
       {/* =====================================================================
-          BOTONES LIQUID GLASS — flotantes al fondo (solo móvil)
+          BARRA DE ACCIÓN FIJA — al fondo (solo móvil)
           ===================================================================== */}
       {!isWide && (
-        <View style={styles.liquidGlassBar}>
-          <UiverseSearchButton
+        <View style={styles.barraAccion}>
+          <BotonBuscar
             onPress={() => router.push("/paseadores")}
             style={{ flex: 1, width: "100%" }}
           />
@@ -388,9 +294,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.crema,
   },
 
-  // ─── NAVBAR ──────────────────────────────────────────────────────────
-
-
   // ─── QUIÉNES SOMOS ────────────────────────────────────────────────
   quienesPanel: {
     backgroundColor: colors.verdePastel,
@@ -407,14 +310,29 @@ const styles = StyleSheet.create({
     maxWidth: 560,
     ...shadows.card,
   },
-  quienesEmoji: {
-    fontSize: 32,
+  quienesCerrar: {
+    position: "absolute",
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  quienesIcono: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
+    backgroundColor: colors.verdePastel,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: spacing.sm,
   },
   quienesTitulo: {
     fontSize: fonts.sizes.lg,
     fontWeight: fonts.pesos.semi,
-    letterSpacing: fonts.tracking.titulo,
+    letterSpacing: fonts.tracking.subtitulo,
     color: colors.verde,
     marginBottom: spacing.sm,
   },
@@ -432,11 +350,11 @@ const styles = StyleSheet.create({
   },
   quienesCreador: {
     fontSize: fonts.sizes.xs,
-    fontWeight: "600",
+    fontWeight: fonts.pesos.semi,
     color: colors.grisOscuro,
     textTransform: "uppercase",
-    letterSpacing: 2,
-    marginBottom: 4,
+    letterSpacing: 1.2,
+    marginBottom: spacing.xs,
   },
   quienesNombre: {
     fontSize: fonts.sizes.md + 1,
@@ -444,11 +362,11 @@ const styles = StyleSheet.create({
     color: colors.verde,
   },
   quienesSiguenos: {
-    fontSize: fonts.sizes.xs + 1,
-    fontWeight: "700",
+    fontSize: fonts.sizes.xs,
+    fontWeight: fonts.pesos.semi,
     color: colors.grisOscuro,
     textTransform: "uppercase",
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     marginBottom: spacing.sm,
   },
   quienesRedes: {
@@ -457,9 +375,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   quienesRedCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
     backgroundColor: colors.verdePastel,
     alignItems: "center",
     justifyContent: "center",
@@ -479,7 +397,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 140,
+    paddingBottom: 110,
   },
   scrollContentWide: {
     paddingBottom: spacing.xxl,
@@ -572,21 +490,24 @@ const styles = StyleSheet.create({
     color: colors.verdeOliva,
     fontStyle: "italic",
   },
-  heroEyebrow: {
-    fontSize: fonts.sizes.xs,
+  heroLead: {
+    fontSize: fonts.sizes.xl,
     fontWeight: fonts.pesos.semi,
-    color: colors.verde,
-    letterSpacing: 2.4,
-    marginBottom: spacing.sm,
+    letterSpacing: fonts.tracking.subtitulo,
+    color: colors.verdeOscuro,
     textAlign: "center",
+    lineHeight: 29,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+    maxWidth: 340,
   },
   heroDescripcion: {
     fontSize: fonts.sizes.md + 1,
     color: colors.grisOscuro,
     textAlign: "center",
     lineHeight: 26,
-    marginBottom: spacing.md,
-    maxWidth: 460,
+    marginBottom: spacing.lg,
+    maxWidth: 360,
   },
   heroDescripcionWide: {
     textAlign: "left",
@@ -602,16 +523,19 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   heroChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: colors.blanco,
     borderWidth: 1,
-    borderColor: colors.verdeMenta,
+    borderColor: colors.lineaFuerte,
     borderRadius: radius.full,
     paddingHorizontal: spacing.md - 2,
     paddingVertical: spacing.xs + 2,
   },
   heroChipTexto: {
-    fontSize: fonts.sizes.xs + 1,
-    fontWeight: "600",
+    fontSize: fonts.sizes.sm,
+    fontWeight: fonts.pesos.medio,
     color: colors.verdeOscuro,
   },
 
@@ -623,9 +547,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: colors.verdePastel,
     ...shadows.card,
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
   },
   videoHeader: {
     padding: spacing.md,
@@ -650,34 +571,6 @@ const styles = StyleSheet.create({
     height: 220,
     backgroundColor: colors.negro,
   },
-  video: {
-    width: "100%",
-    height: "100%",
-  },
-  videoThumbWrapper: {
-    width: "100%",
-    height: "100%",
-  },
-  videoThumbImg: {
-    width: "100%",
-    height: "100%",
-  },
-  videoPlayOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
-  videoPlayCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.verdeOscuro,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.85)",
-  },
 
   ctaContainerWide: {
     flexDirection: "row",
@@ -690,26 +583,20 @@ const styles = StyleSheet.create({
     minWidth: 220,
   },
 
-  // ─── LIQUID GLASS BAR (solo móvil) ────────────────────────────────
-  liquidGlassBar: {
+  // ─── BARRA DE ACCIÓN FIJA (solo móvil) ───────────────────────────
+  // Fondo sólido del color de la pantalla + filete superior: el contenido que
+  // pasa por detrás no se mezcla con el botón.
+  barraAccion: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     flexDirection: "row",
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: Platform.OS === "ios" ? 34 : spacing.md,
-    backgroundColor: "rgba(255,255,255,0.55)",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
-    gap: spacing.sm,
-    shadowColor: colors.verdeOscuro,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 20,
+    paddingTop: spacing.sm + 4,
+    paddingBottom: Platform.OS === "ios" ? 34 : spacing.sm + 4,
+    backgroundColor: colors.crema,
+    borderTopWidth: 1,
+    borderTopColor: colors.linea,
   },
 });

@@ -2,7 +2,6 @@ import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { colors, fonts } from "../src/constants/theme";
-import { AvisoModoPrueba } from "../components/AvisoModoPrueba";
 import { BackButton } from "../components/BackButton";
 import { BotonPerfilHeader } from "../components/BotonPerfilHeader";
 import { SesionProvider } from "../src/context/SesionContext";
@@ -93,7 +92,7 @@ export default function RootLayout() {
         {/* 6. Pantalla de Inicio de Sesión (Login para Usuarios y Paseadores) */}
         <Stack.Screen
           name="login"
-          options={{ title: "Iniciar Sesión" }}
+          options={{ title: "Iniciar sesión" }}
         />
 
         {/* 7. Mi perfil: datos del cliente o panel del paseador */}
@@ -107,9 +106,13 @@ export default function RootLayout() {
           name="mis-resenas"
           options={{ title: "Mis reseñas" }}
         />
+
+        {/* 9. Administración: gestión de cuentas y reseñas (solo rol admin) */}
+        <Stack.Screen
+          name="admin"
+          options={{ title: "Administración" }}
+        />
       </Stack>
-      {/* Aviso visible cuando los datos no van a la base (modo mock) */}
-      <AvisoModoPrueba />
     </SesionProvider>
   );
 }

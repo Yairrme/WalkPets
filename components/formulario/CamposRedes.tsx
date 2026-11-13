@@ -38,7 +38,7 @@ export function CamposRedes({ redes, onCambiar }: Props) {
                 value={redes[red]}
                 onChangeText={(valor) => onCambiar({ ...redes, [red]: valor })}
                 placeholder={placeholder}
-                placeholderTextColor={colors.grisMedio}
+                placeholderTextColor={colors.grisOscuro}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType={red === 'web' ? 'url' : 'default'}

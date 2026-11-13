@@ -10,7 +10,7 @@ import { CIUDADES, Ciudad } from '../../constants/ciudades';
 
 // Convierte el texto de la query string en booleano real. `Boolean('false')`
 // daría `true`, así que no alcanza con @Type(() => Boolean).
-const aBooleano = ({ value }: { value: unknown }) => {
+export const aBooleano = ({ value }: { value: unknown }) => {
   if (value === true || value === 'true') return true;
   if (value === false || value === 'false') return false;
   return value;

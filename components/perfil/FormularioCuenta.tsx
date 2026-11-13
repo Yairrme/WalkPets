@@ -19,6 +19,8 @@ type Props = {
 
 export function FormularioCuenta({ usuario, onGuardado }: Props) {
   const esPaseador = usuario.rol === 'paseador';
+  // Ciudad, barrio y mascotas son datos del cliente (no aplican al admin).
+  const esCliente = usuario.rol === 'cliente';
   const { width } = useWindowDimensions();
   const dosColumnas = width >= 640;
 
@@ -52,7 +54,7 @@ export function FormularioCuenta({ usuario, onGuardado }: Props) {
         nombre,
         apellido,
         telefono: telefono.trim(),
-        ...(esPaseador ? {} : { ciudad, barrio: barrio.trim(), mascotas: mascotas.trim() }),
+        ...(esCliente ? { ciudad, barrio: barrio.trim(), mascotas: mascotas.trim() } : {}),
       });
       onGuardado(actualizado);
       setMensaje({ tipo: 'exito', texto: 'Tus datos se guardaron.' });
@@ -90,7 +92,7 @@ export function FormularioCuenta({ usuario, onGuardado }: Props) {
         <Text style={styles.soloLecturaValor}>{usuario.email}</Text>
       </View>
 
-      {!esPaseador && (
+      {esCliente && (
         <>
           <View style={styles.grupo}>
             <Text style={styles.label}>Tu ciudad</Text>

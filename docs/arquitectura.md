@@ -33,7 +33,7 @@ Las reservas **no forman parte del producto**. El flujo legado se eliminó el 20
 | Base de datos | MongoDB vía `MONGODB_URI` |
 | Autenticación | JWT con roles `cliente` / `paseador`, contraseñas con bcrypt |
 | Sesión en el cliente | Guardada en AsyncStorage |
-| Fuente de datos | `api` (versión funcional) o `mock` (en memoria, vacío), según `EXPO_PUBLIC_DATA_SOURCE` |
+| Fuente de datos | Solo la API NestJS (`EXPO_PUBLIC_API_URL`); el modo mock se eliminó el 2026-11-11 |
 | Tests frontend | 12 suites / 88 tests |
 | Tests backend | 3 suites / 39 tests |
 | Typecheck | `npm run typecheck` en ambos paquetes |
@@ -48,6 +48,7 @@ Las reservas **no forman parte del producto**. El flujo legado se eliminó el 20
 WalkPets/
 ├── app/                              Rutas de Expo Router
 │   ├── _layout.tsx                   Stack raíz + SesionProvider
+│   ├── admin.tsx                     Administración (solo rol admin)
 │   ├── index.tsx                     Landing
 │   ├── login.tsx                     Login, registro de cliente y sesión activa
 │   ├── mis-resenas.tsx               Reseñas del paseador autenticado
@@ -62,7 +63,6 @@ WalkPets/
 │   │   ├── ciudades.ts               Ciudades habilitadas
 │   │   └── theme.ts                  Tokens de diseño
 │   ├── context/SesionContext.tsx     Sesión global
-│   ├── data/                         Almacén en memoria del modo mock (vacío al iniciar)
 │   ├── hooks/                        useListadoPaseadores, usePerfilPaseador
 │   ├── services/
 │   │   ├── paseadores.service.ts     Casos de uso de paseadores
@@ -70,7 +70,7 @@ WalkPets/
 │   │   ├── resenas.service.ts        Casos de uso de reseñas
 │   │   ├── sesion.service.ts         Persistencia de sesión
 │   │   ├── mappers.ts                Contrato API → modelo del frontend
-│   │   ├── repositorios/             Interfaces + implementaciones mock y API
+│   │   ├── repositorios/             Contratos (tipos.ts) + implementación de la API (api.ts)
 │   │   └── api/client.ts             fetch + timeout + ApiError
 │   ├── types/paseador.ts             Contratos TypeScript
 │   └── utils/                        telefono.ts, filtrosPaseadores.ts
@@ -83,6 +83,8 @@ WalkPets/
 │   │   ├── usuarios/                 Cuentas y hash de contraseña
 │   │   ├── paseadores/               Perfiles públicos, filtros y reseñas
 │   │   ├── resenas/                  Alta y consulta de reseñas
+│   │   ├── admin/                    Gestión de cuentas y moderación (rol admin)
+│   │   ├── scripts/crear-admin.ts    Alta de la cuenta de admin (npm run crear-admin)
 │   │   ├── health/                   Estado del servicio
 │   │   ├── common/                   Filtro de errores, guards, decoradores
 │   │   ├── config/                   Validación de variables de entorno
@@ -110,6 +112,7 @@ WalkPets/
 | `/paseadores/registro` | `app/paseadores/registro.tsx` | Alta de paseador | Vigente |
 | `/mi-perfil` | `app/mi-perfil.tsx` | Datos del cliente / panel del paseador | Vigente |
 | `/mis-resenas` | `app/mis-resenas.tsx` | Reseñas propias del paseador | Vigente |
+| `/admin` | `app/admin.tsx` | Gestión de cuentas y moderación de reseñas (solo admin) | Vigente |
 
 El header global define colores, tipografía y un `BackButton` animado. El listado sobrescribe el botón para volver a `/`.
 
@@ -123,7 +126,7 @@ El header global define colores, tipografía y un `BackButton` animado. El lista
 | Componentes | `components/` | UI reutilizable sin lógica de negocio. |
 | Sesión | `src/context/SesionContext.tsx` | Usuario autenticado y logout. |
 | Formularios | `src/hooks/`, pantallas | Estado y validación de entrada. |
-| Datos | `src/services/` | Fachada mock/API, auth, reseñas y sesión. |
+| Datos | `src/services/` | Casos de uso, repositorios de la API, auth, reseñas y sesión. |
 | Transporte | `src/services/api/client.ts` | HTTP, timeout y errores tipados. |
 | Tipos | `src/types/` | Contratos TypeScript. |
 | Diseño | `src/constants/theme.ts` | Colores, tipografía, espaciado, radios y sombras. |
@@ -136,20 +139,19 @@ El header global define colores, tipografía y un `BackButton` animado. El lista
 Pantalla (solo dibuja)
   → hook (src/hooks/: estado de carga, filtros, refresco)
   → caso de uso (src/services/*.service.ts: reglas de negocio, sesión, rol)
-  → repositorio (src/services/repositorios/: interfaz RepositorioPaseadores / RepositorioResenas)
-      ├── usarApi() === false → mock.ts → src/data/paseadores.mock.ts en memoria
-      └── usarApi() === true  → api.ts → src/services/api/client.ts → API NestJS → MongoDB
+  → repositorio (src/services/repositorios/api.ts, contratos en tipos.ts)
+  → src/services/api/client.ts (fetch + timeout + errores) → API NestJS → MongoDB
   → Paseador / Resena / Sesion
 ```
 
 Principios aplicados:
 
-- **Responsabilidad única:** los datos de demo, el mapeo, el acceso a datos, las reglas de negocio y el estado de pantalla viven en módulos separados.
-- **Abierto/cerrado e inversión de dependencias:** los servicios dependen de las interfaces de `repositorios/tipos.ts`. Sumar otra fuente de datos es agregar una implementación, sin tocar pantallas ni servicios.
-- **Sustitución de Liskov:** las implementaciones mock y API cumplen el mismo contrato y aplican las mismas reglas (reseña única, correo único, sin auto-reseña).
+- **Responsabilidad única:** el mapeo, el acceso a datos, las reglas de negocio y el estado de pantalla viven en módulos separados.
+- **Contratos explícitos:** `repositorios/tipos.ts` describe qué operaciones ofrece cada repositorio; `api.ts` las implementa contra el backend.
+- Las reglas que dependen de la base (reseña única, correo único, sin auto-reseña, promedio) las aplica el servidor.
 
-- `usarApi()` es verdadero solo si `EXPO_PUBLIC_DATA_SOURCE=api` **y** `EXPO_PUBLIC_API_URL` tiene valor.
-- El mock arranca vacío (sin paseadores ni cuentas de prueba); los tests cargan sus propios datos.
+- Si falta `EXPO_PUBLIC_API_URL`, cada request falla con un mensaje claro; no hay datos falsos de respaldo.
+- Los tests de servicios simulan el backend reemplazando `fetch` (`__tests__/fixtures/api.ts`).
 - Las pantallas manejan carga, error, vacío, reintento y (en el listado) sin resultados.
 - El filtrado por ciudad, barrio y disponibilidad se hace en el cliente sobre el listado recibido; la API también acepta esos filtros por query string.
 
@@ -176,7 +178,9 @@ El mapeo vive en `src/services/mappers.ts`. Las pantallas nunca llaman a `fetch`
 - `POST /api/auth/login` valida email y contraseña y devuelve `{ accessToken, usuario }`.
 - Las contraseñas se guardan con `bcryptjs` (10 rondas) y el campo `passwordHash` tiene `select: false`.
 - El JWT viaja en `Authorization: Bearer <token>`. `JwtStrategy` recarga el usuario desde MongoDB en cada request, por lo que un usuario eliminado pierde acceso.
-- Roles efectivos: `cliente` y `paseador`.
+- Roles efectivos: `cliente`, `paseador` y `admin`. El registro solo acepta `cliente` o `paseador`; el admin se crea con `npm run crear-admin` (`backend/src/scripts/crear-admin.ts`, usa `ADMIN_EMAIL` y `ADMIN_PASSWORD`).
+  - Cuentas suspendidas (`activo: false`): el login responde `403` (después de validar la contraseña) y `JwtStrategy` rechaza su token con `401`; el perfil de paseador asociado queda con `suspendido: true` y `buscarLean`/`listar` lo ocultan.
+  - Administración: `AdminController` exige `admin` a nivel de clase. No permite modificar la propia cuenta ni otras de admin. Es la única parte de la API que devuelve correos de otros usuarios.
   - Publicar reseña: solo `cliente` autenticado, nunca sobre el propio perfil y una sola vez por paseador (409 si repite; índice único `paseador + autor`).
   - Consultar reseñas propias: solo `paseador` autenticado.
   - Listado y perfil: públicos. El perfil usa un guard JWT opcional para marcar `esPropietario`.
@@ -199,6 +203,11 @@ Prefijo global `/api`. Documentación Swagger en `/api/docs` cuando el servidor 
 | GET | `/api/paseadores/:id` | Público (JWT opcional) | Perfil con últimas 50 reseñas |
 | POST | `/api/paseadores/:id/resenas` | Cliente | Publica reseña y recalcula promedio |
 | GET | `/api/resenas/mias` | Paseador | Reseñas del propio perfil |
+| GET | `/api/admin/usuarios` | Admin | Cuentas paginadas; filtros `rol`, `q`, `activo`, `pagina` |
+| PATCH | `/api/admin/usuarios/:id/estado` | Admin | Suspende (`activo: false`) o reactiva una cuenta |
+| DELETE | `/api/admin/usuarios/:id` | Admin | Borra cuenta, perfil y reseñas; recalcula promedios |
+| GET | `/api/admin/resenas` | Admin | Reseñas paginadas; filtros `paseadorId`, `pagina` |
+| DELETE | `/api/admin/resenas/:id` | Admin | Borra una reseña y recalcula el promedio |
 
 Errores normalizados por `AllExceptionsFilter`:
 
@@ -226,7 +235,8 @@ Errores normalizados por `AllExceptionsFilter`:
   email: string;           // único, lowercase
   passwordHash: string;    // select: false
   telefono: string | null; // opcional para clientes
-  rol: 'cliente' | 'paseador';
+  rol: 'cliente' | 'paseador' | 'admin';
+  activo: boolean;         // false = suspendida por un admin
   createdAt: Date;
   updatedAt: Date;
 }
@@ -250,6 +260,7 @@ Errores normalizados por `AllExceptionsFilter`:
   razasAceptadas: string[];
   calificacionPromedio: number;
   cantidadResenas: number;
+  suspendido: boolean;     // true mientras la cuenta dueña está suspendida
   createdAt: Date;
   updatedAt: Date;
 }
@@ -290,7 +301,6 @@ Las reseñas viven en colección separada y los contadores (`calificacionPromedi
 
 | Variable | Ejemplo | Uso |
 |---|---|---|
-| `EXPO_PUBLIC_DATA_SOURCE` | `mock` \| `api` | Fuente de datos |
 | `EXPO_PUBLIC_API_URL` | `http://localhost:3000/api` | Base de la API |
 | `EXPO_PUBLIC_API_TIMEOUT_MS` | `10000` | Timeout de `fetch` |
 
@@ -357,7 +367,7 @@ La validación de entorno falla al arrancar con un mensaje claro si falta o es i
 | Seguridad | Sin refresh tokens, verificación de email, recuperación de contraseña, rate limiting ni `expo-secure-store`. |
 | Reseñas | No se valida que el cliente haya contratado al paseador; solo que no sea el dueño del perfil. |
 | Paginación | El listado y las reseñas no paginan. |
-| Imágenes | El mock usa `randomuser.me`; el registro acepta una URL de foto. |
+| Imágenes | La foto se guarda como data URI JPEG en MongoDB (sin almacenamiento de archivos). |
 | Estilos | Quedan colores de marca hardcodeados que no coinciden con el tema. |
 | CORS | Sin `CORS_ORIGIN`, el backend acepta cualquier origen (solo aceptable en desarrollo). |
 

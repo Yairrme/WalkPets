@@ -1,3 +1,12 @@
+// ============================================================================
+// PANTALLA: /paseadores/registro (alta de paseador)
+// Formulario por secciones: cuenta, contacto y zona, servicio, redes y permisos.
+// Valida con validarRegistroPaseador (mismas reglas que el backend), crea la
+// cuenta + el perfil con registrarPaseador y deja la sesión iniciada.
+// Al terminar muestra una vista previa de cómo lo ven los dueños.
+// ============================================================================
+
+import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -130,8 +139,10 @@ export default function RegistroPaseador() {
         keyboardShouldPersistTaps="handled"
       >
         <Aparecer style={styles.exitoCard}>
-          <Text style={styles.exitoIcono}>🎉🐾</Text>
-          <Text style={styles.exitoTitulo}>¡Registro Exitoso!</Text>
+          <View style={styles.exitoIcono}>
+            <FontAwesome name="check" size={30} color={colors.verde} />
+          </View>
+          <Text style={styles.exitoTitulo}>¡Registro exitoso!</Text>
           <Text style={styles.exitoSubtitulo}>
             Felicidades, {paseadorRegistrado.nombre}. Ya formas parte de la red de WalkPets en {paseadorRegistrado.ciudad}.
           </Text>
@@ -150,12 +161,13 @@ export default function RegistroPaseador() {
                 {paseadorRegistrado.nombre} {paseadorRegistrado.apellido}
               </Text>
               <Text style={styles.previewBarrio}>
-                📍 {paseadorRegistrado.barrio}, {paseadorRegistrado.ciudad}
+                <FontAwesome name="map-marker" size={13} color={colors.grisOscuro} />
+                {'  '}{paseadorRegistrado.barrio}, {paseadorRegistrado.ciudad}
               </Text>
               <Text style={styles.previewPrecio}>
                 ${paseadorRegistrado.precioHora.toLocaleString('es-AR')} / hora
               </Text>
-              <Text style={styles.previewResenas}>⭐ Sin calificaciones todavía</Text>
+              <Text style={styles.previewResenas}>Sin calificaciones todavía</Text>
             </View>
           </View>
 
@@ -194,7 +206,6 @@ export default function RegistroPaseador() {
     >
       <View style={styles.contenedor}>
       <Aparecer style={styles.encabezado}>
-        <Text style={styles.eyebrow}>PARA PASEADORES Y CUIDADORES</Text>
         <Text style={styles.titulo}>Ofrecé tus paseos</Text>
         <Text style={styles.descripcionGuia}>
           Creá tu perfil gratis y conectá con familias de Cipolletti y Neuquén que buscan
@@ -419,7 +430,7 @@ export default function RegistroPaseador() {
           {cargando ? (
             <ActivityIndicator color={colors.blanco} />
           ) : (
-            <Text style={styles.btnPrincipalTexto}>Crear mi Perfil de Paseador 🐾</Text>
+            <Text style={styles.btnPrincipalTexto}>Crear mi perfil de paseador</Text>
           )}
         </TouchableOpacity>
         <Text style={styles.notaFinal}>
@@ -450,13 +461,6 @@ const styles = StyleSheet.create({
   // Encabezado
   encabezado: {
     paddingVertical: spacing.md,
-  },
-  eyebrow: {
-    fontSize: fonts.sizes.xs,
-    fontWeight: fonts.pesos.semi,
-    color: colors.verdeOliva,
-    letterSpacing: 2,
-    marginBottom: spacing.xs,
   },
   titulo: {
     fontSize: fonts.sizes.xxxl,
@@ -610,7 +614,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   exitoIcono: {
-    fontSize: 56,
+    width: 64,
+    height: 64,
+    borderRadius: radius.full,
+    backgroundColor: colors.verdePastel,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   exitoTitulo: {
     fontSize: fonts.sizes.xxl,

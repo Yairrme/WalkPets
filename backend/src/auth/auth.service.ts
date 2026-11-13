@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -91,6 +92,12 @@ export class AuthService {
     const coincide = await bcrypt.compare(dto.password, usuario.passwordHash);
     if (!coincide) {
       throw new UnauthorizedException('Correo o contraseña incorrectos.');
+    }
+
+    // Se verifica después de la contraseña para no revelar a terceros si una
+    // cuenta existe o está suspendida.
+    if (usuario.activo === false) {
+      throw new ForbiddenException('Tu cuenta está suspendida. Contactá a WalkPets para más información.');
     }
 
     return {

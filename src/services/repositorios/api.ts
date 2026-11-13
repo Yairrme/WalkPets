@@ -1,21 +1,32 @@
+import { PaginaAdmin } from '../../types/admin';
 import { CambiosPerfilPaseador, Sesion } from '../../types/paseador';
 import { apiFetch, ApiError } from '../api/client';
 import {
   mapPaseador,
   mapResena,
+  mapResenaAdmin,
   mapUsuario,
+  mapUsuarioAdmin,
   PaseadorApi,
+  ResenaAdminApi,
   ResenaApi,
+  UsuarioAdminApi,
   UsuarioApi,
 } from '../mappers';
-import { RepositorioCuenta, RepositorioPaseadores, RepositorioResenas } from './tipos';
+import {
+  RepositorioAdmin,
+  RepositorioCuenta,
+  RepositorioPaseadores,
+  RepositorioResenas,
+} from './tipos';
 
 // El modelo del frontend llama "foto" a lo que la API llama "fotoUrl".
 function cambiosParaApi({ foto, ...resto }: CambiosPerfilPaseador) {
   return foto === undefined ? resto : { ...resto, fotoUrl: foto };
 }
 
-// Implementación contra la API NestJS (EXPO_PUBLIC_DATA_SOURCE=api).
+// Implementación de los repositorios contra la API NestJS. Cada método llama a
+// un endpoint y convierte la respuesta al modelo del frontend (mappers.ts).
 
 type RespuestaRegistroPaseador = {
   accessToken: string;
@@ -101,6 +112,45 @@ export const resenasApi: RepositorioResenas = {
   async delPaseadorAutenticado(sesion) {
     const respuesta = await apiFetch<ResenaApi[]>('/resenas/mias', { token: sesion.token });
     return respuesta.map(mapResena);
+  },
+};
+
+export const adminApi: RepositorioAdmin = {
+  async listarUsuarios(sesion, { rol, q, pagina = 1 }) {
+    const parametros = new URLSearchParams({ pagina: String(pagina) });
+    if (rol) parametros.set('rol', rol);
+    if (q?.trim()) parametros.set('q', q.trim());
+
+    const respuesta = await apiFetch<PaginaAdmin<UsuarioAdminApi>>(
+      `/admin/usuarios?${parametros.toString()}`,
+      { token: sesion.token }
+    );
+    return { ...respuesta, items: respuesta.items.map(mapUsuarioAdmin) };
+  },
+
+  async cambiarEstado(sesion, usuarioId, activo) {
+    const respuesta = await apiFetch<UsuarioAdminApi>(`/admin/usuarios/${usuarioId}/estado`, {
+      method: 'PATCH',
+      token: sesion.token,
+      body: { activo },
+    });
+    return mapUsuarioAdmin(respuesta);
+  },
+
+  async eliminarUsuario(sesion, usuarioId) {
+    await apiFetch<void>(`/admin/usuarios/${usuarioId}`, { method: 'DELETE', token: sesion.token });
+  },
+
+  async listarResenas(sesion, pagina) {
+    const respuesta = await apiFetch<PaginaAdmin<ResenaAdminApi>>(
+      `/admin/resenas?pagina=${pagina}`,
+      { token: sesion.token }
+    );
+    return { ...respuesta, items: respuesta.items.map(mapResenaAdmin) };
+  },
+
+  async eliminarResena(sesion, resenaId) {
+    await apiFetch<void>(`/admin/resenas/${resenaId}`, { method: 'DELETE', token: sesion.token });
   },
 };
 

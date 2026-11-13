@@ -1,3 +1,4 @@
+import { FiltrosUsuariosAdmin, PaginaAdmin, ResenaAdmin, UsuarioAdmin } from '../../types/admin';
 import {
   CambiosCuenta,
   CambiosPerfilPaseador,
@@ -9,10 +10,9 @@ import {
   Usuario,
 } from '../../types/paseador';
 
-// Contratos de acceso a datos (principio de inversión de dependencias).
-// Los servicios dependen de estas interfaces, no de "mock" ni de "fetch":
-// agregar otra fuente de datos es sumar una implementación, sin tocar las
-// pantallas ni los servicios (abierto/cerrado).
+// Contratos de acceso a datos: qué operaciones ofrece cada repositorio.
+// `api.ts` los implementa contra el backend. Tenerlos separados documenta la
+// capa de datos de un vistazo y tipa los parámetros de cada método.
 
 export interface RepositorioPaseadores {
   listar(): Promise<Paseador[]>;
@@ -27,6 +27,15 @@ export interface RepositorioPaseadores {
 export interface RepositorioResenas {
   crear(paseadorId: string, datos: NuevaResenaInput, sesion: Sesion): Promise<Resena>;
   delPaseadorAutenticado(sesion: Sesion): Promise<Resena[]>;
+}
+
+// Administración (rol admin): gestión de cuentas y moderación de reseñas.
+export interface RepositorioAdmin {
+  listarUsuarios(sesion: Sesion, filtros: FiltrosUsuariosAdmin): Promise<PaginaAdmin<UsuarioAdmin>>;
+  cambiarEstado(sesion: Sesion, usuarioId: string, activo: boolean): Promise<UsuarioAdmin>;
+  eliminarUsuario(sesion: Sesion, usuarioId: string): Promise<void>;
+  listarResenas(sesion: Sesion, pagina: number): Promise<PaginaAdmin<ResenaAdmin>>;
+  eliminarResena(sesion: Sesion, resenaId: string): Promise<void>;
 }
 
 // Cuenta del usuario autenticado ("Mi perfil").

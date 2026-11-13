@@ -7,7 +7,7 @@
 
 ## 1. Situación actual
 
-- Frontend: Expo SDK 54 + Expo Router 6, datos mock o API.
+- Frontend: Expo SDK 54 + Expo Router 6, datos de la API NestJS.
 - Backend: NestJS 11 + Mongoose 9 + MongoDB, en `backend/`.
 - Auth real con JWT y roles; contraseñas con bcrypt.
 - Arnés del frontend: Jest 29 + `jest-expo` + React Native Testing Library.
@@ -20,9 +20,9 @@
 | -------- | ------------------- | ---------------------------- |
 | Frontend | `npm run typecheck` | Sin errores                  |
 | Frontend | `npm run lint`      | Sin errores ni warnings      |
-| Frontend | `npm test`          | 12 suites, 88 tests en verde |
+| Frontend | `npm test`          | 17 suites, 119 tests en verde |
 | Backend  | `npm run typecheck` | Sin errores                  |
-| Backend  | `npm test`          | 3 suites, 39 tests en verde  |
+| Backend  | `npm test`          | 5 suites, 93 tests en verde  |
 | Backend  | `npm run build`     | Sin errores                  |
 
 ### 1.2 Smoke test de integración ejecutado
@@ -61,7 +61,7 @@ Además de la suite automatizada, se levantó la API compilada (`backend/dist/ma
 ### Incluido
 
 - Unitarios de utilidades (teléfono, entorno).
-- Servicios del frontend en modo mock.
+- Servicios del frontend con el backend simulado (`fetch` falso, `__tests__/fixtures/api.ts`).
 - Mapeo frontend ↔ API con `fetch` simulado.
 - Componentes y pantallas con RNTL.
 - E2E de la API completa contra MongoDB efímera.
@@ -112,6 +112,9 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testMatch: ["<rootDir>/__tests__/**/*.test.ts?(x)"],
   testPathIgnorePatterns: ["/node_modules/", "/.expo/", "/dist/"],
+  // El primer render de cada suite de pantallas puede pasar los 5 s por
+  // defecto cuando todas las suites corren en paralelo.
+  testTimeout: 15000,
   collectCoverageFrom: [
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
@@ -154,12 +157,16 @@ __tests__/
 │   ├── EmptyState.test.tsx
 │   ├── PaseadorCard.test.tsx
 │   └── StarRating.test.tsx
+├── context/
+│   └── SesionContext.test.tsx
 ├── screens/
+│   ├── admin.test.tsx
 │   ├── listado-paseadores.test.tsx
 │   ├── login.test.tsx
 │   ├── perfil-paseador.test.tsx
 │   └── registro-paseador.test.tsx
 ├── services/
+│   ├── admin.service.test.ts
 │   ├── api.integracion.test.ts
 │   ├── paseadores.service.test.ts
 │   └── resenas.service.test.ts
@@ -167,6 +174,7 @@ __tests__/
     └── telefono.test.ts
 
 backend/test/
+├── admin.e2e.spec.ts
 ├── app.e2e.spec.ts
 ├── env.validation.spec.ts
 └── telefono.spec.ts
@@ -178,7 +186,7 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 
 ## 7. Casos implementados — frontend
 
-### 7.1 Utilidades de teléfono (16 tests)
+### 7.1 Utilidades de teléfono (19 tests)
 
 | Caso                   | Resultado esperado                                |
 | ---------------------- | ------------------------------------------------- |
@@ -188,6 +196,8 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 | `0299 4123456`         | `5492994123456`                                   |
 | `299 15 4123456`       | Quita el `15`                                     |
 | Guiones y paréntesis   | Se normalizan                                     |
+| `4123456`, `15 4123456` | Completa la característica `299`                 |
+| `5412345`, `9123456`   | Local de 7 dígitos: no se confunde con `54` ni `9` |
 | Vacío o corto          | `null`                                            |
 | `formatearTelefono`    | `+54 9 299 4123-456`                              |
 | `construirUrlTel`      | `tel:+5492994123456`                              |
@@ -195,32 +205,27 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 | Mensaje prellenado     | Menciona WalkPets                                 |
 | Número inválido        | `null` en las tres funciones                      |
 
-### 7.2 Servicio mock de paseadores (9 tests)
+### 7.2 Servicio de paseadores y cuenta (6 tests, `fetch` simulado)
 
-| Caso                          | Resultado esperado                                    |
-| ----------------------------- | ----------------------------------------------------- |
-| Listado                       | 4 paseadores                                          |
-| Ciudades                      | Hay Cipolletti y Neuquén                              |
-| Teléfonos                     | Todos válidos                                         |
-| Copias                        | Mutar el resultado no altera el mock                  |
-| `getPaseadorById` existente   | Devuelve el paseador                                  |
-| `getPaseadorById` inexistente | `null`                                                |
-| Registro válido               | Normaliza teléfono, genera ID y aparece en el listado |
-| Teléfono inválido             | Error                                                 |
-| Ciudad inválida               | Error                                                 |
+| Caso                              | Resultado esperado                                                  |
+| --------------------------------- | ------------------------------------------------------------------- |
+| Registro válido                   | Envía teléfono `+549…`, redes sin “@”, certificaciones sin repetir; guarda la sesión |
+| Teléfono, ciudad o red inválidos  | Error sin llamar al servidor                                        |
+| Correo repetido (409)             | Muestra el mensaje del servidor                                     |
+| Panel sin sesión o como cliente   | Error sin llamar al servidor                                        |
+| Editar perfil                     | `PATCH /paseadores/mio` con `fotoUrl` y handles limpios             |
+| Editar cuenta                     | Valida el nombre y actualiza la sesión guardada                     |
 
-### 7.3 Servicio de reseñas en modo mock (6 tests)
+### 7.3 Servicio de reseñas (4 tests, `fetch` simulado)
 
-| Caso                          | Resultado esperado                     |
-| ----------------------------- | -------------------------------------- |
-| Sin sesión                    | Error                                  |
-| Sesión de paseador            | Error “Solo los clientes…”             |
-| Cliente                       | Publica, actualiza promedio y cantidad |
-| Paseador autenticado          | Devuelve sus reseñas                   |
-| Cliente en `/resenas/mias`    | Error                                  |
-| Sin sesión en `/resenas/mias` | Error                                  |
+| Caso                                     | Resultado esperado                      |
+| ---------------------------------------- | --------------------------------------- |
+| Sin sesión o sesión de paseador          | Error sin llamar al servidor            |
+| Reseña repetida (409)                    | Muestra el mensaje del servidor         |
+| Paseador autenticado                     | `GET /resenas/mias` y fecha `AAAA-MM-DD` |
+| `/resenas/mias` sin sesión o como cliente | Error                                   |
 
-### 7.4 Integración con la API (6 tests, `fetch` simulado)
+### 7.4 Integración con la API (8 tests, `fetch` simulado)
 
 | Caso           | Resultado esperado                                          |
 | -------------- | ----------------------------------------------------------- |
@@ -229,6 +234,8 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 | Perfil 404     | Devuelve `null`                                             |
 | Alta de reseña | `POST` al endpoint correcto con token                       |
 | Error 400      | `ApiError` con `detalles`                                   |
+| 401 con token  | Avisa sesión vencida y lanza “Tu sesión venció…”            |
+| 401 sin token  | Login fallido: conserva el mensaje del servidor, sin aviso  |
 | Fallo de red   | “No se pudo conectar con el servidor.”                      |
 
 ### 7.5 Componentes (13 tests)
@@ -305,15 +312,43 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 | Contraseña corta         | Error de validación                   |
 | Registro válido          | Normaliza teléfono y navega           |
 | Teléfono inválido        | Error de formato                      |
-| Modo mock                | Arranca vacío, sin cuentas de prueba  |
+| Sin cuentas de demo      | No ofrece cuentas de demostración     |
+
+### 7.10 Sesión (2 tests)
+
+| Caso                              | Resultado esperado                                      |
+| --------------------------------- | ------------------------------------------------------- |
+| La API rechaza el token vigente (401) | `SesionProvider` cierra la sesión y borra AsyncStorage |
+| 401 tardío de un token anterior   | Se ignora; la sesión vigente se conserva                |
+
+### 7.11 Administración (14 tests)
+
+Pantalla `/admin` (9 tests, servicio simulado):
+
+| Caso                    | Resultado esperado                                              |
+| ----------------------- | --------------------------------------------------------------- |
+| Sin rol admin           | “Esta sección es solo para administradores.” y no carga datos   |
+| Listado                 | Contador, correo, rol y estado; la cuenta admin no tiene acciones |
+| Suspender               | Llama al servicio y muestra “Suspendida” / “Reactivar”           |
+| Eliminar                | Pide confirmación; al confirmar borra la tarjeta y baja el contador |
+| Cancelar                | No elimina                                                      |
+| Filtros                 | Rol por chip y búsqueda al confirmar (texto recortado)          |
+| Error de acción         | Muestra el mensaje del servidor                                 |
+| Error de carga          | Estado de error con el mensaje                                  |
+| Reseñas                 | Lista con el paseador destinatario y elimina con confirmación   |
+
+Servicio (`admin.service.test.ts`, 3 tests): sin sesión, rol cliente o paseador (sin llamar al servidor) y un admin que consulta con su token.
+
+Integración con `fetch` simulado (2 tests, en `api.integracion.test.ts`): query string de filtros, mapeo de `creadoEn`/`telefono`, `PATCH` de estado y `DELETE` con `204`.
 
 ---
 
-## 8. Casos implementados — backend (39 tests)
+## 8. Casos implementados — backend (93 tests)
 
-### 8.1 Utilidades (3 tests)
+### 8.1 Utilidades (5 tests)
 
 - Normalización de teléfonos argentinos al formato `549...`.
+- Números locales de 7 dígitos que empiezan con `54` o `9` reciben la característica `299`.
 - Rechazo de vacíos e inválidos.
 - Formato legible `+54 9 299 4123-456`.
 
@@ -340,6 +375,16 @@ Los tests del frontend van fuera de `app/` a propósito: todo archivo dentro de 
 | Reseñas propias    | Sin sesión 401; como cliente 403; como paseador 200 con sus reseñas                                                                                                                                            |
 
 El E2E verifica además que `passwordHash` no se devuelve, que el teléfono del paseador se guarda como `+5492994123456` y que `calificacionPromedio`/`cantidadResenas` se actualizan tras publicar.
+
+### 8.4 E2E de administración (21 tests, `admin.e2e.spec.ts`)
+
+| Área                 | Casos                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alta del admin       | `crearAdmin` crea y permite login con rol admin; si ya es admin actualiza la contraseña; se niega con correo de cliente; correo/contraseña inválidos; registro con `rol: admin` 400 |
+| Listado de cuentas   | Sin sesión 401; cliente y paseador 403; admin 200 con correo, rol, estado, `paseadorId` y sin `passwordHash`; filtro por rol; búsqueda sin distinguir mayúsculas; `.*` se busca como texto; rol inválido 400 |
+| Suspender/reactivar  | Suspendido: fuera del listado, perfil 404, reseña 404, login 403, token 401; contraseña incorrecta sigue en 401; filtro `activo=false`; reactivación revierte; propia cuenta 400; otro admin 403; cuerpo inválido 400; id inexistente 404 |
+| Reseñas              | Listado con nombre del paseador y autor; cliente 403; borrado 204 con promedio recalculado; segundo borrado 404                                  |
+| Eliminar cuenta      | Cliente: borra sus reseñas, recalcula, login 401 y token 401; paseador: perfil 404; propia cuenta 400                                           |
 
 ---
 
@@ -407,7 +452,6 @@ copy .env.example .env    # completar MONGODB_URI y JWT_SECRET
 npm.cmd run start:dev
 
 # Terminal 2
-$env:EXPO_PUBLIC_DATA_SOURCE="api"
 $env:EXPO_PUBLIC_API_URL="http://localhost:3000/api"
 npm.cmd start
 ```
@@ -435,7 +479,7 @@ Checklist:
 | Riesgo                             | Mitigación                                      |
 | ---------------------------------- | ----------------------------------------------- |
 | Tests acoplados a textos exactos   | Usar roles, labels y fixtures estables.         |
-| Timers reales lentos               | `jest.useFakeTimers()` en el mock.              |
+| Backend real en tests              | `fetch` simulado en `__tests__/fixtures/api.ts`. |
 | Estado mutable entre tests         | `AsyncStorage.clear()` y `jest.resetModules()`. |
 | `expo-router` en tests             | Mock de `router`.                               |
 | Iconos nativos en Jest             | Mock en `jest.setup.ts`.                        |

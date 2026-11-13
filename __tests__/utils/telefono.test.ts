@@ -39,6 +39,13 @@ describe('normalizarTelefono', () => {
     expect(normalizarTelefono('154123456')).toBe('5492994123456');
   });
 
+  it('no confunde números locales que empiezan con 54 o 9 con prefijos', () => {
+    expect(normalizarTelefono('5412345')).toBe('5492995412345');
+    expect(normalizarTelefono('541-2345')).toBe('5492995412345');
+    expect(normalizarTelefono('9123456')).toBe('5492999123456');
+    expect(normalizarTelefono('15 5412345')).toBe('5492995412345');
+  });
+
   it('respeta otras características de 10 dígitos', () => {
     expect(normalizarTelefono('11 4123 4567')).toBe('5491141234567');
     expect(normalizarTelefono('2944 123456')).toBe('5492944123456');

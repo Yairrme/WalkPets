@@ -2,7 +2,8 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { CIUDADES, Ciudad } from '../../constants/ciudades';
 
-export const ROLES = ['cliente', 'paseador'] as const;
+// 'admin' no se elige al registrarse: se crea con `npm run crear-admin`.
+export const ROLES = ['cliente', 'paseador', 'admin'] as const;
 export type Rol = (typeof ROLES)[number];
 
 @Schema({ timestamps: true, collection: 'usuarios' })
@@ -26,6 +27,11 @@ export class Usuario {
   @Prop({ required: true, enum: ROLES, type: String })
   rol!: Rol;
 
+  // false = cuenta suspendida por un administrador: no puede iniciar sesión y
+  // su token deja de servir.
+  @Prop({ default: true })
+  activo!: boolean;
+
   // Datos opcionales del perfil del cliente. Nunca se muestran a otros usuarios.
   @Prop({ type: String, enum: [...CIUDADES, null], default: null })
   ciudad?: Ciudad | null;
@@ -48,9 +54,11 @@ export type UsuarioLean = {
   email: string;
   telefono?: string | null;
   rol: Rol;
+  activo?: boolean;
   ciudad?: Ciudad | null;
   barrio?: string;
   mascotas?: string;
+  createdAt?: Date;
 };
 
 export type UsuarioConPassword = UsuarioLean & { passwordHash: string };

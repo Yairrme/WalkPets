@@ -26,9 +26,10 @@ El repositorio incluye la app móvil/web (Expo + React Native) y una API REST pr
 - Registro de paseador con selector de ciudad, email, contraseña y validación de teléfono.
 - Registro e inicio de sesión de clientes; sesión persistida en el dispositivo.
 - Clientes autenticados pueden publicar reseñas; paseadores autenticados pueden consultar las reseñas de su perfil.
+- **Administración** (`/admin`, rol admin): buscar cuentas, suspenderlas o reactivarlas, eliminarlas y moderar reseñas.
 - Estados de interfaz: carga, error, vacío, sin resultados y reintento.
 - Backend con autenticación JWT, roles, validación de DTOs, Swagger y persistencia en MongoDB.
-- Dos fuentes de datos: **api** (backend real, la versión funcional) y **mock** (en memoria, vacío al iniciar; para desarrollo y tests).
+- Una sola fuente de datos: el backend real (NestJS + MongoDB). No hay modo de prueba en memoria.
 
 > El flujo de reserva de turnos **no forma parte del producto actual**.
 
@@ -47,22 +48,13 @@ El repositorio incluye la app móvil/web (Expo + React Native) y una API REST pr
 
 - Node.js 20 o superior.
 - npm.
-- Para el modo API: una instancia de MongoDB local o un cluster de MongoDB Atlas.
+- Una instancia de MongoDB local o un cluster de MongoDB Atlas (la app siempre usa el backend).
 
 ---
 
 ## Instalación y uso
 
-### 1. App en modo mock (sin backend)
-
-```bash
-npm ci
-npm start
-```
-
-Escaneá el QR con **Expo Go** o abrí la app en el emulador. No hace falta configurar nada más.
-
-### 2. App + API + MongoDB
+### 1. App + API + MongoDB
 
 ```bash
 # API
@@ -72,18 +64,29 @@ copy .env.example .env    # completar MONGODB_URI y JWT_SECRET
 npm run start:dev         # http://localhost:3000
 
 # App (otra terminal, en la raíz)
-# .env
-# EXPO_PUBLIC_DATA_SOURCE=api
-# EXPO_PUBLIC_API_URL=http://localhost:3000/api
+npm ci
+copy .env.example .env    # EXPO_PUBLIC_API_URL=http://localhost:3000/api
 npm start
 ```
 
 Comprobá la API en http://localhost:3000/api/health y la documentación en http://localhost:3000/api/docs.
 
-### 3. Datos
+### 2. Datos
 
 No hay datos ni cuentas de prueba: la app arranca vacía. Registrá tus paseadores desde
 `/paseadores/registro` y tus clientes desde `/login` (pestaña "Crear cuenta").
+
+### 3. Cuenta de administrador
+
+Nadie puede registrarse como admin desde la app:
+
+```bash
+cd backend
+# backend/.env → ADMIN_EMAIL=... y ADMIN_PASSWORD=... (8 a 72 caracteres)
+npm run crear-admin
+```
+
+El script crea la cuenta (o, si ya existe como admin, le asigna esa contraseña) y no imprime la contraseña. Si el correo pertenece a un cliente o paseador, se niega. Después iniciá sesión en `/login` con esos datos: la app te lleva a `/admin`.
 
 ---
 
@@ -93,7 +96,6 @@ No hay datos ni cuentas de prueba: la app arranca vacía. Registrá tus paseador
 
 | Variable | Valores | Uso |
 |---|---|---|
-| `EXPO_PUBLIC_DATA_SOURCE` | `mock` \| `api` | Fuente de datos. Por defecto `mock`. |
 | `EXPO_PUBLIC_API_URL` | `http://localhost:3000/api` | Base de la API, con `/api` y sin barra final. |
 | `EXPO_PUBLIC_API_TIMEOUT_MS` | `10000` | Timeout de cada request. |
 
@@ -108,6 +110,8 @@ Las variables `EXPO_PUBLIC_*` se embeben en el bundle: **nunca** pongas secretos
 | `JWT_EXPIRES_IN` | No | Expiración del token (por defecto `7d`). |
 | `PORT` | No | Puerto HTTP (por defecto `3000`). |
 | `CORS_ORIGIN` | No | Orígenes permitidos separados por coma; vacío = todos. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Solo para `npm run crear-admin` | Cuenta de administrador. La API no las usa. |
+| `ADMIN_NOMBRE`, `ADMIN_APELLIDO` | No | Nombre visible del admin (por defecto “Administración WalkPets”). |
 
 `.env` está gitignoreado; solo se versiona `.env.example`.
 
@@ -127,6 +131,7 @@ Las variables `EXPO_PUBLIC_*` se embeben en el bundle: **nunca** pongas secretos
 WalkPets/
 ├── app/                        Rutas de Expo Router
 │   ├── _layout.tsx             Stack raíz + SesionProvider
+│   ├── admin.tsx               Administración (solo rol admin)
 │   ├── index.tsx               Landing
 │   ├── login.tsx               Login y registro
 │   ├── mis-resenas.tsx         Reseñas del paseador autenticado
@@ -136,10 +141,10 @@ WalkPets/
 │       └── registro.tsx        Alta de paseador
 ├── components/                 UI reutilizable
 ├── src/
-│   ├── config/api.ts           Fuente de datos y URL
+│   ├── config/api.ts           URL y timeout de la API
 │   ├── constants/              Ciudades y tema
 │   ├── context/                Sesión global
-│   ├── services/               Fachada mock/API, auth, reseñas, sesión
+│   ├── services/               Casos de uso + repositorios de la API, auth, sesión
 │   ├── types/                  Contratos TypeScript
 │   └── utils/                  Normalización de teléfono
 ├── __tests__/                  Tests del frontend
@@ -198,6 +203,11 @@ Prefijo global `/api`. Documentación interactiva en `/api/docs`.
 | GET | `/api/paseadores/:id` | Público | Perfil con reseñas |
 | POST | `/api/paseadores/:id/resenas` | Cliente | Publica una reseña |
 | GET | `/api/resenas/mias` | Paseador | Reseñas del propio perfil |
+| GET | `/api/admin/usuarios` | Admin | Cuentas paginadas (`rol`, `q`, `activo`, `pagina`) |
+| PATCH | `/api/admin/usuarios/:id/estado` | Admin | Suspende o reactiva una cuenta |
+| DELETE | `/api/admin/usuarios/:id` | Admin | Elimina cuenta, perfil y reseñas |
+| GET | `/api/admin/resenas` | Admin | Reseñas paginadas para moderar |
+| DELETE | `/api/admin/resenas/:id` | Admin | Elimina una reseña |
 
 Errores normalizados:
 

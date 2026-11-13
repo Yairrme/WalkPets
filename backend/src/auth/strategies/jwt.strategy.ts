@@ -24,7 +24,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<UsuarioAutenticado> {
     const usuario = await this.usuarios.buscarPorId(payload.sub);
 
-    if (!usuario) {
+    // Cuenta eliminada o suspendida: el token deja de servir.
+    if (!usuario || usuario.activo === false) {
       throw new UnauthorizedException('La sesión ya no es válida.');
     }
 

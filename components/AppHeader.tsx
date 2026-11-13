@@ -124,7 +124,7 @@ export function AppHeader({ onQuienesSomos, quienesActivo = false }: Props) {
           </View>
           <View>
             <Text style={styles.marcaTitulo}>WalkPets</Text>
-            <Text style={styles.marcaSubtitulo}>CIPOLLETTI · NEUQUÉN</Text>
+            <Text style={styles.marcaSubtitulo}>Cipolletti · Neuquén</Text>
           </View>
         </Pressable>
 
@@ -169,7 +169,7 @@ export function AppHeader({ onQuienesSomos, quienesActivo = false }: Props) {
             },
           ]}
         >
-          {sesion && <Text style={styles.saludoMovil}>Hola, {sesion.usuario.nombre} 👋</Text>}
+          {sesion && <Text style={styles.saludoMovil}>Hola, {sesion.usuario.nombre}</Text>}
           {acciones.map((accion) => (
             <Pressable
               key={accion.clave}
@@ -274,9 +274,9 @@ const styles = StyleSheet.create({
     color: colors.blanco,
   },
   marcaSubtitulo: {
-    fontSize: 9,
-    fontWeight: fonts.pesos.semi,
-    letterSpacing: 2,
+    fontSize: fonts.sizes.xs,
+    fontWeight: fonts.pesos.medio,
+    letterSpacing: 0.4,
     color: colors.blancoSuave,
   },
   acciones: {
@@ -330,7 +330,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.verdeMenta,
   },
   hamburguesa: {
-    padding: spacing.xs,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuMovil: {
     marginTop: spacing.md,

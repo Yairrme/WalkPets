@@ -10,10 +10,7 @@
 
 WalkPets conecta dueños de mascotas con paseadores locales. Permite buscar paseadores, filtrar por ciudad, barrio y disponibilidad, consultar perfiles y reseñas, y contactarlos por teléfono o WhatsApp.
 
-La app funciona en dos modos:
-
-- **mock**: datos en memoria que arrancan vacíos, útil para desarrollo y tests.
-- **api**: consume el backend NestJS + MongoDB incluido en `backend/`.
+La app consume siempre el backend NestJS + MongoDB incluido en `backend/`. El modo de prueba en memoria (mock) se eliminó el 2026-11-11.
 
 El flujo de reserva de turnos **no forma parte de estas especificaciones**. Su código legado se eliminó el 2026-10-28.
 
@@ -46,7 +43,7 @@ Que una persona pueda:
 - Normalización y presentación del teléfono.
 - Acciones “Llamar” (`tel:`) y “WhatsApp” (`wa.me` con mensaje prellenado).
 - Registro de paseador con selector de ciudad, email, contraseña y validación de teléfono.
-- Login y registro de cliente contra el backend (o en memoria en modo mock).
+- Login y registro de cliente contra el backend.
 - `/mi-perfil`: el cliente edita nombre, teléfono, ciudad, barrio y sus mascotas; el paseador además edita su perfil público (disponibilidad, foto, servicio, razas, redes y permisos).
 - Redes sociales y permisos/certificaciones en el registro y el panel del paseador. Son declarados y no verificados: el perfil público lo aclara.
 - Sesión persistida en AsyncStorage y contexto global.
@@ -84,7 +81,8 @@ Que una persona pueda:
 - Pagos.
 - Notificaciones push.
 - Mapas y geolocalización.
-- Panel administrativo.
+
+> El panel de administración figuraba como excluido; se incorporó el 2026-11-11 (RF-17).
 
 ---
 
@@ -95,6 +93,7 @@ Que una persona pueda:
 | Visitante | Recorre landing, listado y perfiles sin cuenta.                       |
 | Cliente   | Se registra, inicia sesión y puede publicar reseñas.                  |
 | Paseador  | Se registra con perfil, aparece en el listado y consulta sus reseñas. |
+| Administrador | Gestiona cuentas (busca, suspende, reactiva, elimina) y modera reseñas. No se registra desde la app: se crea con `npm run crear-admin`. |
 
 ---
 
@@ -218,6 +217,7 @@ No hay paso de reserva ni selección de turno.
 - Login con email y contraseña.
 - La sesión se mantiene al recargar la app.
 - Logout borra la sesión.
+- Si la API rechaza el token guardado (`401`: sesión vencida o cuenta eliminada), la app cierra la sesión local y avisa “Tu sesión venció. Iniciá sesión de nuevo.”.
 - No hay cuentas de demostración en ningún modo.
 
 **Estado:** implementado.
@@ -246,7 +246,6 @@ No hay paso de reserva ni selección de turno.
 - `ciudad` se usa en filtros, tarjetas, perfil, registro y encabezados.
 - No hay textos de ciudad hardcodeados en la UI vigente.
 - Los barrios se asocian a una ciudad.
-- El mock y la API respetan el mismo contrato.
 
 **Estado:** implementado.
 
@@ -267,6 +266,18 @@ No hay paso de reserva ni selección de turno.
 
 **Estado:** implementado.
 
+### RF-17 — Administración de usuarios y reseñas
+
+- Existe el rol `admin`. No se puede elegir al registrarse (la API responde `400`); la cuenta se crea en el backend con `npm run crear-admin` a partir de `ADMIN_EMAIL` y `ADMIN_PASSWORD`. Si el correo ya es de un admin, el script le asigna la contraseña indicada; si es de un cliente o paseador, se niega.
+- La ruta `/admin` solo se muestra al rol admin; se llega desde Mi perfil o al iniciar sesión.
+- **Usuarios:** listado paginado (20 por página) con búsqueda por nombre, apellido o correo y filtro por rol. Cada cuenta muestra correo, rol, estado, teléfono y fecha de alta.
+- **Suspender / reactivar:** una cuenta suspendida no puede iniciar sesión (`403`, “Tu cuenta está suspendida…”), su token deja de servir (`401`, la app cierra la sesión) y, si es paseador, su perfil no se lista ni se puede abrir o reseñar. Reactivarla revierte todo.
+- **Eliminar cuenta:** borrado definitivo, con confirmación. Se borran la cuenta, su perfil de paseador con las reseñas que recibió, y las reseñas que escribió; se recalculan los promedios afectados.
+- **Moderar reseñas:** listado paginado de reseñas recientes con el paseador destinatario; eliminar una reseña (con confirmación) recalcula el promedio.
+- El admin no puede suspender ni eliminar su propia cuenta (`400`) ni otras cuentas de admin (`403`).
+
+**Estado:** implementado.
+
 ---
 
 ## 7. Reglas de negocio
@@ -279,6 +290,8 @@ No hay paso de reserva ni selección de turno.
 - **Disponibilidad:** estado declarado por el paseador, no una agenda reservable.
 - **Reseñas:** solo clientes autenticados; un autor no puede reseñar su propio perfil; una reseña por cliente y paseador; la calificación va de 1 a 5; el promedio se recalcula en el servidor.
 - **Datos personales:** el perfil público expone nombre, foto, ciudad, barrio, descripción, precio y teléfono de contacto. No expone email, contraseña ni identificadores internos innecesarios.
+- **Excepción del administrador:** los endpoints `/api/admin/*` (solo rol admin) son los únicos que devuelven correos de otros usuarios. Nunca devuelven `passwordHash`.
+- **Cuentas suspendidas:** no inician sesión, su token no sirve y su perfil de paseador queda oculto hasta que un admin las reactive.
 - **Datos de prueba:** no hay; la app arranca vacía y se usa con los perfiles que se registran.
 
 ---
@@ -342,7 +355,7 @@ type Usuario = {
   apellido: string;
   email: string;
   telefono?: string;
-  rol: "cliente" | "paseador";
+  rol: "cliente" | "paseador" | "admin";
 };
 
 type Sesion = { token: string; usuario: Usuario };
@@ -352,8 +365,8 @@ type Sesion = { token: string; usuario: Usuario };
 
 Los esquemas completos están en `docs/arquitectura.md` §9. Resumen:
 
-- `usuarios`: cuenta con `email` único, `passwordHash` oculto y `rol`.
-- `paseadores`: perfil público con referencia única a `usuarios`, ciudad validada y teléfono obligatorio.
+- `usuarios`: cuenta con `email` único, `passwordHash` oculto, `rol` (`cliente`, `paseador` o `admin`) y `activo` (false = suspendida).
+- `paseadores`: perfil público con referencia única a `usuarios`, ciudad validada, teléfono obligatorio y `suspendido` (oculto mientras la cuenta está suspendida).
 - `resenas`: referencia a paseador y autor, con nombre de autor denormalizado.
 
 ---
@@ -369,6 +382,11 @@ Los esquemas completos están en `docs/arquitectura.md` §9. Resumen:
 | GET    | `/api/paseadores/:id`         | Público  | —                                                                          |
 | POST   | `/api/paseadores/:id/resenas` | Cliente  | `mascota`, `texto`, `calificacion`                                         |
 | GET    | `/api/resenas/mias`           | Paseador | —                                                                          |
+| GET    | `/api/admin/usuarios`         | Admin    | `rol?`, `q?`, `activo?`, `pagina?` → `{ items, total, pagina, porPagina }` |
+| PATCH  | `/api/admin/usuarios/:id/estado` | Admin | `activo` (`false` suspende, `true` reactiva)                              |
+| DELETE | `/api/admin/usuarios/:id`     | Admin    | — (`204`; borra cuenta, perfil y reseñas)                                  |
+| GET    | `/api/admin/resenas`          | Admin    | `paseadorId?`, `pagina?` → `{ items, total, pagina, porPagina }`           |
+| DELETE | `/api/admin/resenas/:id`      | Admin    | — (`204`; recalcula el promedio)                                           |
 
 Respuesta de registro:
 
@@ -393,7 +411,7 @@ Respuesta de registro:
 }
 ```
 
-Errores: `400` validación, `401` no autenticado, `403` sin permisos, `404` no encontrado, `409` email duplicado, `500` error interno.
+Errores: `400` validación, `401` no autenticado, `403` sin permisos o cuenta suspendida (login), `404` no encontrado, `409` email duplicado, `500` error interno.
 
 ---
 
@@ -401,10 +419,9 @@ Errores: `400` validación, `401` no autenticado, `403` sin permisos, `404` no e
 
 Ver `docs/integracion-futura.md`. Resumen:
 
-- `src/services/paseadores.service.ts` mantiene las firmas; el repositorio activo (mock o API) se elige en `src/services/repositorios/index.ts`.
-- `EXPO_PUBLIC_DATA_SOURCE=api` + `EXPO_PUBLIC_API_URL` habilitan la API.
-- Los DTOs se mapean en los servicios; las pantallas no cambian.
-- El mock sigue disponible para desarrollo y tests.
+- Los servicios de `src/services/` llaman a los repositorios de `src/services/repositorios/api.ts`.
+- `EXPO_PUBLIC_API_URL` indica dónde está la API (con `/api`, sin barra final).
+- Los DTOs se mapean en `src/services/mappers.ts`; las pantallas no cambian.
 
 ---
 
@@ -417,6 +434,8 @@ Ver `docs/integracion-futura.md`. Resumen:
 - Un cliente autenticado puede publicar una reseña.
 - Un paseador autenticado puede consultar sus reseñas.
 - Un cliente no puede consultar `/api/resenas/mias`.
+- Solo un admin accede a `/api/admin/*`; nadie puede registrarse como admin.
+- Una cuenta suspendida no inicia sesión y su perfil no aparece en el listado.
 - La API rechaza ciudades fuera de Cipolletti y Neuquén.
 - `npm run verify` pasa en frontend y backend.
 - La documentación coincide con el estado real.

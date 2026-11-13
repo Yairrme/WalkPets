@@ -61,6 +61,11 @@ export class Paseador {
 
   @Prop({ default: 0, min: 0 })
   cantidadResenas!: number;
+
+  // true mientras la cuenta dueña está suspendida: el perfil no se lista, no se
+  // puede abrir ni reseñar.
+  @Prop({ default: false, index: true })
+  suspendido!: boolean;
 }
 
 export const PaseadorSchema = SchemaFactory.createForClass(Paseador);
@@ -82,4 +87,5 @@ export type PaseadorLean = {
   certificaciones?: string[];
   calificacionPromedio: number;
   cantidadResenas: number;
+  suspendido?: boolean;
 };

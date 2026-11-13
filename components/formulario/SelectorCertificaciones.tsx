@@ -65,7 +65,7 @@ export function SelectorCertificaciones({ certificaciones, onCambiar }: Props) {
           onChangeText={setOtra}
           onSubmitEditing={agregarOtra}
           placeholder="Otro permiso o curso (ej: Curso de etología)"
-          placeholderTextColor={colors.grisMedio}
+          placeholderTextColor={colors.grisOscuro}
           style={styles.otraInput}
           maxLength={80}
           editable={!lleno}

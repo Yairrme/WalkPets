@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import {
   Platform,
   StyleSheet,
@@ -10,13 +10,16 @@ import {
 } from 'react-native';
 import { colors, fonts, radius, spacing } from '../../src/constants/theme';
 
-// Campo de texto con etiqueta, ayuda opcional, prefijo y mensaje de error.
+// Campo de texto reutilizable: etiqueta, ayuda opcional, prefijo, accesorio a la
+// derecha (ej. botón de mostrar contraseña) y mensaje de error. Lo usan todos los
+// formularios para que se vean y se comporten igual.
 
 type Props = TextInputProps & {
   etiqueta: string;
   ayuda?: string;
   error?: string;
   prefijo?: string;
+  accesorio?: ReactNode; // se dibuja a la derecha, dentro de la caja
   obligatorio?: boolean;
   enFila?: boolean; // comparte la fila con otro campo (pantallas anchas)
 };
@@ -26,6 +29,7 @@ export function Campo({
   ayuda,
   error,
   prefijo,
+  accesorio,
   obligatorio = true,
   enFila = false,
   multiline,
@@ -52,7 +56,7 @@ export function Campo({
           {...input}
           multiline={multiline}
           style={[styles.input, multiline && styles.inputMultilinea]}
-          placeholderTextColor={colors.grisMedio}
+          placeholderTextColor={colors.grisOscuro}
           onFocus={(e) => {
             setEnfocado(true);
             input.onFocus?.(e);
@@ -62,6 +66,7 @@ export function Campo({
             input.onBlur?.(e);
           }}
         />
+        {accesorio}
       </View>
       {error ? (
         <Text style={styles.error}>{error}</Text>
@@ -123,11 +128,11 @@ const styles = StyleSheet.create({
   },
   error: {
     color: colors.error,
-    fontSize: fonts.sizes.xs + 1,
+    fontSize: fonts.sizes.sm,
     fontWeight: fonts.pesos.medio,
   },
   ayuda: {
     color: colors.grisOscuro,
-    fontSize: fonts.sizes.xs + 1,
+    fontSize: fonts.sizes.sm,
   },
 });

@@ -9,9 +9,9 @@ describe('PaseadorCard', () => {
 
     expect(screen.getByText('Paseador Lucía Fernández')).toBeTruthy();
     expect(screen.getByText(/\$\s?1[.,]?800/)).toBeTruthy();
-    expect(screen.getByText('★ 4.9')).toBeTruthy();
+    expect(screen.getByText('4.9')).toBeTruthy();
     expect(screen.getByText('(38)')).toBeTruthy();
-    expect(screen.getByText('📍 Cipolletti Centro, Cipolletti')).toBeTruthy();
+    expect(screen.getByText('Cipolletti Centro, Cipolletti')).toBeTruthy();
     expect(screen.getByText('Disponible hoy')).toBeTruthy();
   });
 

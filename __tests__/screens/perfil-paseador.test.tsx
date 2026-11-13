@@ -42,7 +42,7 @@ describe('DetallePaseador', () => {
     render(<DetallePaseador />);
 
     expect(await screen.findByText('Lucía Fernández')).toBeTruthy();
-    expect(screen.getByText('📍 Cipolletti Centro, Cipolletti')).toBeTruthy();
+    expect(screen.getByText('Cipolletti Centro, Cipolletti')).toBeTruthy();
     expect(screen.getByText('4.9')).toBeTruthy();
     expect(screen.getByText('38 reseñas')).toBeTruthy();
     expect(screen.getByText('Sobre mí')).toBeTruthy();
@@ -51,7 +51,7 @@ describe('DetallePaseador', () => {
     expect(screen.getByText('Todas las razas')).toBeTruthy();
     expect(screen.getByText('Reseñas (1)')).toBeTruthy();
     expect(screen.getByText('Martina G.')).toBeTruthy();
-    expect(screen.getByText('🐶 Rocky')).toBeTruthy();
+    expect(screen.getByText('Rocky')).toBeTruthy();
     expect(screen.getByText(paseadorCipolletti.resenas[0].texto)).toBeTruthy();
     expect(screen.getByText('2024-11-10')).toBeTruthy();
   });
@@ -62,7 +62,7 @@ describe('DetallePaseador', () => {
     render(<DetallePaseador />);
 
     expect(await screen.findByText('Santiago Morales')).toBeTruthy();
-    expect(screen.getByText('📍 Neuquén Centro, Neuquén')).toBeTruthy();
+    expect(screen.getByText('Neuquén Centro, Neuquén')).toBeTruthy();
   });
 
   it('muestra el teléfono formateado y abre llamada y WhatsApp', async () => {
@@ -72,10 +72,10 @@ describe('DetallePaseador', () => {
 
     expect(await screen.findByText('+54 9 299 4123-456')).toBeTruthy();
 
-    fireEvent.press(screen.getByText('📞 Llamar'));
+    fireEvent.press(screen.getByText('Llamar'));
     expect(Linking.openURL).toHaveBeenCalledWith('tel:+5492994123456');
 
-    fireEvent.press(screen.getByText('💬 WhatsApp'));
+    fireEvent.press(screen.getByText('WhatsApp'));
     expect(Linking.openURL).toHaveBeenCalledWith(
       `https://wa.me/5492994123456?text=${encodeURIComponent(
         'Hola Lucía, te contacto desde WalkPets para consultar por el servicio de paseo.'
@@ -103,8 +103,8 @@ describe('DetallePaseador', () => {
     expect(
       screen.getByText('Este paseador todavía no tiene un teléfono de contacto válido.')
     ).toBeTruthy();
-    expect(screen.queryByText('📞 Llamar')).toBeNull();
-    expect(screen.queryByText('💬 WhatsApp')).toBeNull();
+    expect(screen.queryByText('Llamar')).toBeNull();
+    expect(screen.queryByText('WhatsApp')).toBeNull();
   });
 
   it('muestra una lista de reseñas vacía sin romper el perfil', async () => {

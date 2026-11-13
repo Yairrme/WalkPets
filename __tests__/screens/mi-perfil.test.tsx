@@ -86,7 +86,7 @@ describe('MiPerfil', () => {
     render(<MiPerfil />);
 
     expect(await screen.findByText('Martina Gómez')).toBeTruthy();
-    expect(screen.getByText('🐕 Cliente')).toBeTruthy();
+    expect(screen.getByText('Cliente')).toBeTruthy();
     expect(screen.queryByText('Mi perfil público')).toBeNull();
 
     fireEvent.changeText(screen.getByLabelText('Tus mascotas'), 'Rocky');
@@ -110,7 +110,7 @@ describe('MiPerfil', () => {
     render(<MiPerfil />);
 
     expect(await screen.findByText('Mi perfil público')).toBeTruthy();
-    expect(screen.getByText('Mis reseñas (38) →')).toBeTruthy();
+    expect(screen.getByText('Mis reseñas (38)')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText('Precio por hora'), '2500');
     fireEvent.press(screen.getByLabelText('Agregar Habilitación municipal'));

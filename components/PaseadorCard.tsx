@@ -1,3 +1,4 @@
+import { FontAwesome } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
 import {
   Animated,
@@ -103,15 +104,17 @@ export function PaseadorCard({ paseador, onPress }: Props) {
         </Text>
 
         {/* Barrio y ciudad del paseador (hasta 2 líneas para no truncar la ciudad) */}
-        <Text style={styles.barrio} numberOfLines={2}>
-          📍 {paseador.barrio}, {paseador.ciudad}
-        </Text>
+        <View style={styles.barrioFila}>
+          <FontAwesome name="map-marker" size={13} color={colors.grisOscuro} style={styles.barrioIcono} />
+          <Text style={styles.barrio} numberOfLines={2}>
+            {paseador.barrio}, {paseador.ciudad}
+          </Text>
+        </View>
 
         {/* Calificación en estrellas y cantidad total de reseñas */}
         <View style={styles.calificacionFila}>
-          <Text style={styles.estrellas}>
-            ★ {paseador.calificacion.toFixed(1)}
-          </Text>
+          <FontAwesome name="star" size={13} color={colors.naranjaEstrella} />
+          <Text style={styles.estrellas}>{paseador.calificacion.toFixed(1)}</Text>
           <Text style={styles.calificacionTexto}>({paseador.cantidadResenas})</Text>
         </View>
 
@@ -140,7 +143,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...shadows.card,
     // Transición CSS suave al hacer hover (solo web)
-    ...(Platform.OS === 'web' ? { transition: 'all 0.2s ease' } : null),
+    ...(Platform.OS === 'web'
+      ? { transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease' }
+      : null),
   } as any,
   // Estilo aplicado dinámicamente cuando isHovered es true
   cardHovered: {
@@ -198,8 +203,17 @@ const styles = StyleSheet.create({
     color: colors.grisOscuro,
     fontWeight: '600',
   },
+  barrioFila: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  barrioIcono: {
+    marginTop: 2,
+  },
   barrio: {
-    fontSize: fonts.sizes.xs + 1,
+    flex: 1,
+    fontSize: fonts.sizes.sm,
     color: colors.grisOscuro,
   },
   calificacionFila: {
@@ -209,8 +223,8 @@ const styles = StyleSheet.create({
   },
   estrellas: {
     fontSize: fonts.sizes.sm,
-    color: colors.naranja,
-    fontWeight: '700',
+    color: colors.naranjaTexto,
+    fontWeight: fonts.pesos.semi,
   },
   calificacionTexto: {
     fontSize: fonts.sizes.xs,

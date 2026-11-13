@@ -113,7 +113,8 @@ export class PaseadoresService {
   }
 
   async listar(filtros: QueryPaseadoresDto = {}): Promise<PaseadorDto[]> {
-    const consulta: Record<string, unknown> = {};
+    // Los perfiles de cuentas suspendidas no se listan.
+    const consulta: Record<string, unknown> = { suspendido: { $ne: true } };
 
     if (filtros.ciudad) consulta.ciudad = filtros.ciudad;
     if (filtros.barrio) consulta.barrio = filtros.barrio;
@@ -143,6 +144,8 @@ export class PaseadoresService {
     return this.mapear(paseador, { usuarioId, resenas });
   }
 
+  // Perfil público por id. Un perfil suspendido se trata como inexistente
+  // (no se puede abrir ni reseñar).
   async buscarLean(id: string): Promise<PaseadorLean> {
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException('No encontramos ese paseador.');
@@ -153,7 +156,7 @@ export class PaseadoresService {
       .lean<PaseadorLean | null>()
       .exec();
 
-    if (!paseador) {
+    if (!paseador || paseador.suspendido) {
       throw new NotFoundException('No encontramos ese paseador.');
     }
 
